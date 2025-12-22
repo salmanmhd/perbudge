@@ -7,7 +7,7 @@ services:
     ports:
       - "27017:27017"
     volumes:
-      - E:/db/mongo:/data/db
+      - D:\code\db\mongo:/data/db
 
   # redis:
   #   image: redis:7
