@@ -14,6 +14,7 @@ async function generateRefresAndAccessToken(user) {
 
 const registerUser = async (req, res) => {
   const { fullName, email, password } = req.body;
+  console.log("🔴 req.body: ", req.body);
   if (!fullName || !email || !password) {
     res.status(500).json({
       status: 500,
