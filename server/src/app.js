@@ -1,5 +1,6 @@
 import express from "express";
 import userRouter from "./routes/user.route.js";
+import expenseRouter from "./routes/expense.route.js";
 
 // import cors from "cors";
 
@@ -12,6 +13,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/v1/user", userRouter);
+app.use("/api/v1/expense", expenseRouter);
 
 // app.listen(PORT, ()=>{});
 export { app };
