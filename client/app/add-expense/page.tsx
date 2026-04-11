@@ -4,13 +4,29 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { DatePickerDemo } from "@/components/utils/DatePicker"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 function AddExpense() {
   const [amount, setAmount] = useState(0)
   const [description, setDescription] = useState("")
   const [date, setDate] = useState(null)
+  const [userId, setUserId] = useState<string | null>(null)
+  useEffect(() => {
+    const localStorageUserId = localStorage.getItem("userId")
+    setUserId(localStorageUserId)
+  }, [
+
+  ])
+
+  async function submitAddExpense() {
+    if (!(amount || description || date)) {
+      toast.error("Please fill all the details")
+      console.log("userId: ", userId)
+      return
+    }
+  }
+
   return (
     <div>
       <h1 className="m-8 text-2xl font-semibold">Add Expense</h1>
@@ -45,10 +61,8 @@ function AddExpense() {
           />
         </div>
         <Button
-          onClick={() =>
-            toast.success("expense added", {
-              description: `amount: ${amount}, description: ${description}, date: ${date}`,
-            })
+          onClick={
+            submitAddExpense
           }
         >
           Add Expense
