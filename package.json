@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 4500",
+    "dev:https": "next dev --experimental-https -H 0.0.0.0 -p 4500",
     "build": "next build",
     "start": "next start -p 4500",
     "lint": "eslint",

@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createTransaction } from "@/lib/actions/transaction-db";
+import { getAccounts, type AccountView } from "@/lib/actions/accounts";
 import { parseTransactionNLP } from "@/app/actions/transaction";
 import { CATEGORIES } from "@/lib/categories";
 import { useMediaQuery } from "@/hooks/use-media-query";
@@ -66,9 +67,20 @@ export function QuickAddDrawer({ children, triggerShortcut }: QuickAddDrawerProp
   const [type, setType] = useState<"income" | "expense" | "transfer">("expense");
   const [category, setCategory] = useState("");
   const [paymentMode, setPaymentMode] = useState<PaymentMode>("cash");
+  const [accountId, setAccountId] = useState<string>("");
+  const [cards, setCards] = useState<AccountView[]>([]);
   const [note, setNote] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Lazily load the user's credit cards the first time a card is chosen.
+  useEffect(() => {
+    if (paymentMode === "credit_card" && cards.length === 0) {
+      getAccounts().then((accs) =>
+        setCards(accs.filter((a) => a.type === "credit_card"))
+      );
+    }
+  }, [paymentMode, cards.length]);
 
   // ── NLP State ──
   const [nlpMode, setNlpMode] = useState(false);
@@ -83,6 +95,7 @@ export function QuickAddDrawer({ children, triggerShortcut }: QuickAddDrawerProp
     setType("expense");
     setCategory("");
     setPaymentMode("cash");
+    setAccountId("");
     setNote("");
     setDate(new Date().toISOString().split("T")[0]);
     setNlpMode(false);
@@ -137,6 +150,7 @@ export function QuickAddDrawer({ children, triggerShortcut }: QuickAddDrawerProp
       category,
       type,
       paymentMode,
+      accountId: paymentMode === "credit_card" && accountId ? accountId : undefined,
       note: note || undefined,
       isRecurring: false,
       date,
@@ -378,6 +392,39 @@ export function QuickAddDrawer({ children, triggerShortcut }: QuickAddDrawerProp
               </button>
             </div>
           </div>
+
+          {/* Card picker (only when Credit Card + cards exist) */}
+          {paymentMode === "credit_card" && cards.length > 0 && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">
+                Which card?
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {cards.map((c) => (
+                  <button
+                    key={c._id}
+                    type="button"
+                    onClick={() =>
+                      setAccountId((prev) => (prev === c._id ? "" : c._id))
+                    }
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                      accountId === c._id
+                        ? "bg-primary/15 text-primary ring-2 ring-primary"
+                        : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    <CreditCard className="h-3.5 w-3.5" />
+                    {c.name}
+                    {c.last4 ? (
+                      <span className="font-mono text-xs opacity-70">
+                        ·{c.last4}
+                      </span>
+                    ) : null}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Note */}
           <div className="space-y-2">

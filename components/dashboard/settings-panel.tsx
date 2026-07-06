@@ -92,8 +92,11 @@ export function SettingsPanel() {
         </CardHeader>
         <CardContent>
           <div className="text-sm text-muted-foreground space-y-1">
-            <p>Version 0.0.1 — Phase 1 (Foundation)</p>
-            <p>AI-powered personal finance tracker for Indian families.</p>
+            <p>AI-powered personal finance for Indian families.</p>
+            <p className="text-xs">
+              Track spending, credit cards, EMIs, money owed, and budgets — with
+              an AI co-pilot and weekly email reports.
+            </p>
             <p className="text-xs">Built with Next.js · Clerk · MongoDB · Gemini Flash</p>
           </div>
         </CardContent>

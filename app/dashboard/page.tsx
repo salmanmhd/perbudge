@@ -6,11 +6,15 @@ import {
   getDailySpendingChart,
   getUserBudget,
 } from "@/lib/actions/dashboard-data";
+import { getMonthlyEmiTotal } from "@/lib/actions/loans";
+import { getAccounts } from "@/lib/actions/accounts";
+import { getLedger } from "@/lib/actions/ledger";
 import { SummaryCards } from "@/components/dashboard/summary-cards";
 import { RecentTransactions } from "@/components/dashboard/recent-transactions";
 import { TodayHero } from "@/components/dashboard/today-hero";
 import { SpendingChart } from "@/components/dashboard/spending-chart";
 import { CategoryDonut } from "@/components/dashboard/category-donut";
+import { MoneyMap } from "@/components/dashboard/money-map";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -24,6 +28,10 @@ export default async function DashboardPage() {
     todaySummary,
     dailySpending,
     monthlyBudget,
+    emiTotal,
+    accounts,
+    personalLedger,
+    clientLedger,
   ] = await Promise.all([
     getSummaryMetrics(),
     getRecentTransactions(5),
@@ -31,7 +39,17 @@ export default async function DashboardPage() {
     getTodaySummary(),
     getDailySpendingChart(),
     getUserBudget(),
+    getMonthlyEmiTotal(),
+    getAccounts(),
+    getLedger("personal"),
+    getLedger("client"),
   ]);
+
+  const cardsDue = accounts
+    .filter((a) => a.type === "credit_card")
+    .reduce((s, c) => s + (c.cycleSpend || 0), 0);
+  const receivable = personalLedger.totalReceivable + clientLedger.totalReceivable;
+  const payable = personalLedger.totalPayable + clientLedger.totalPayable;
 
   return (
     <div className="space-y-6 p-4 pt-6 md:p-8">
@@ -46,6 +64,14 @@ export default async function DashboardPage() {
 
       {/* Summary Metric Cards */}
       <SummaryCards {...metrics} />
+
+      {/* Obligations & relationships map */}
+      <MoneyMap
+        emiTotal={emiTotal}
+        cardsDue={cardsDue}
+        receivable={receivable}
+        payable={payable}
+      />
 
       {/* Charts Row */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">

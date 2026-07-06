@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-06T00:00:00.000Z",
+  "title": "Design System: Kharcha",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Emerald Teal",
+        "canonical": "oklch(0.508 0.118 165.612)",
+        "tonalRamp": [
+          "oklch(0.24 0.08 165.612)",
+          "oklch(0.32 0.09 165.612)",
+          "oklch(0.4 0.1 165.612)",
+          "oklch(0.46 0.11 165.612)",
+          "oklch(0.508 0.118 165.612)",
+          "oklch(0.64 0.11 165.612)",
+          "oklch(0.78 0.08 165.612)",
+          "oklch(0.9 0.04 165.612)"
+        ]
+      },
+      "background": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "oklch(1 0 0)",
+        "tonalRamp": [
+          "oklch(0.96 0 0)",
+          "oklch(0.97 0 0)",
+          "oklch(0.98 0 0)",
+          "oklch(0.99 0 0)",
+          "oklch(1 0 0)",
+          "oklch(0.995 0 0)",
+          "oklch(0.999 0 0)",
+          "oklch(1 0 0)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Hero headings and major page titles."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Primary reading content and dashboard copy."
+      }
+    },
+    "shadows": [
+      {
+        "name": "ambient-low",
+        "value": "0 8px 24px rgba(15, 23, 42, 0.06)",
+        "purpose": "Light separation for cards and drawers."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-standard",
+        "value": "cubic-bezier(0.2, 0.8, 0.2, 1)",
+        "purpose": "Default motion for hover and state changes."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Primary action for saving, submitting, and high-priority next steps.",
+      "html": "<button class=\"ds-btn-primary\">Continue</button>",
+      "css": ".ds-btn-primary { background: oklch(0.508 0.118 165.612); color: oklch(0.979 0.021 166.113); border: none; border-radius: 0.45rem; padding: 0.75rem 1rem; font-weight: 600; transition: transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 160ms cubic-bezier(0.2, 0.8, 0.2, 1); } .ds-btn-primary:hover { transform: translateY(-1px); opacity: 0.95; }"
+    },
+    {
+      "name": "Surface Card",
+      "kind": "card",
+      "refersTo": "card-surface",
+      "description": "A calm, elevated container for summary content and dashboard panels.",
+      "html": "<section class=\"ds-card\"><h3>Summary</h3><p>Balanced overview content.</p></section>",
+      "css": ".ds-card { background: oklch(1 0 0); color: oklch(0.145 0 0); border: 1px solid oklch(0.922 0 0); border-radius: 0.75rem; padding: 1rem; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Quiet confidence for everyday money decisions.",
+    "overview": "Kharcha uses a calm, high-clarity visual language that feels practical rather than ornamental. The system favors clean surfaces, restrained color, and clear structure so the product can support fast financial tasks without visual noise. It should look trustworthy and modern, but never cold or overly clever.",
+    "keyCharacteristics": [
+      "Mobile-first, task-driven layouts with generous breathing room",
+      "One intentional accent color used for action and meaning",
+      "Plainspoken typography that feels legible at a glance",
+      "Soft elevation through tonal layering rather than heavy decoration"
+    ],
+    "rules": [
+      {
+        "name": "The One Accent Rule",
+        "body": "The emerald accent is used for meaningful action and state only; it should not become decorative wallpaper.",
+        "section": "colors"
+      },
+      {
+        "name": "The Readability Rule",
+        "body": "Typography should make the information feel obvious at a glance, especially for money-related tasks and alerts.",
+        "section": "typography"
+      }
+    ],
+    "dos": [
+      "Use the emerald accent for important actions and selected states, not as an all-over decoration.",
+      "Keep bodies of text dark and legible against light surfaces.",
+      "Favor simple, familiar patterns for data-heavy dashboard flows."
+    ],
+    "donts": [
+      "Do not turn the interface into a flashy fintech or AI demo with neon color or overbuilt motion.",
+      "Do not use dense, spreadsheet-like layouts where a calmer, more guided experience would help.",
+      "Do not rely on color alone to communicate meaning, state, or hierarchy."
+    ]
+  }
+}

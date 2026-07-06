@@ -10,6 +10,7 @@ export async function createTransaction(data: {
   category: string;
   type: "income" | "expense" | "transfer";
   paymentMode?: PaymentMode;
+  accountId?: string;
   note?: string;
   counterparty?: string;
   isRecurring: boolean;
@@ -27,6 +28,7 @@ export async function createTransaction(data: {
       category: data.category,
       type: data.type,
       paymentMode: data.paymentMode || "cash",
+      accountId: data.accountId || undefined,
       note: data.note,
       counterparty: data.counterparty,
       isRecurring: data.isRecurring,

@@ -134,3 +134,170 @@
     @apply bg-background/90 backdrop-blur-xl border border-border/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] rounded-3xl;
   }
 }
+
+/* ── Landing page entrance choreography (CSS-only, load-triggered) ── */
+@keyframes kh-rise {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes kh-scale-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* Entrance animations: resting state is fully visible (opacity 1). The keyframe
+   only plays as a one-off enhancement on load, so content is NEVER gated on the
+   animation running (headless renderers, frozen animations, etc. still show it). */
+.kh-rise {
+  animation: kh-rise 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.kh-scale-in {
+  animation: kh-scale-in 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── Ambient / continuous motion ── */
+@keyframes kh-drift-a {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(6%, 8%, 0) scale(1.15); }
+  100% { transform: translate3d(-4%, -6%, 0) scale(1.05); }
+}
+@keyframes kh-drift-b {
+  0%   { transform: translate3d(0, 0, 0) scale(1.1); }
+  50%  { transform: translate3d(-8%, 4%, 0) scale(0.95); }
+  100% { transform: translate3d(5%, -8%, 0) scale(1.12); }
+}
+@keyframes kh-drift-c {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(4%, -6%, 0) scale(1.2); }
+  100% { transform: translate3d(-6%, 6%, 0) scale(0.9); }
+}
+@keyframes kh-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+@keyframes kh-float-slow {
+  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+  50%      { transform: translateY(-14px) rotate(-1.5deg); }
+}
+@keyframes kh-blink {
+  0%, 49%   { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+@keyframes kh-shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position: 200% 0; }
+}
+@keyframes kh-sheen {
+  0%   { transform: translateX(-120%) skewX(-18deg); }
+  60%, 100% { transform: translateX(320%) skewX(-18deg); }
+}
+@keyframes kh-marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@keyframes kh-grow {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+.kh-float { animation: kh-float 6s ease-in-out infinite; }
+.kh-float-slow { animation: kh-float-slow 8s ease-in-out infinite; }
+.kh-caret {
+  display: inline-block;
+  width: 2px;
+  animation: kh-blink 1.1s steps(1) infinite;
+}
+
+/* Aurora field — soft drifting color blobs behind hero / CTA */
+.kh-aurora { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.kh-blob { position: absolute; border-radius: 9999px; filter: blur(70px); opacity: 0.6; will-change: transform; }
+.kh-blob-1 { animation: kh-drift-a 22s ease-in-out infinite alternate; }
+.kh-blob-2 { animation: kh-drift-b 27s ease-in-out infinite alternate; }
+.kh-blob-3 { animation: kh-drift-c 31s ease-in-out infinite alternate; }
+
+/* Grid + dot patterns (masked to fade at edges) */
+.kh-grid {
+  background-image:
+    linear-gradient(to right, rgba(6, 78, 59, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(6, 78, 59, 0.06) 1px, transparent 1px);
+  background-size: 44px 44px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, #000 40%, transparent 100%);
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, #000 40%, transparent 100%);
+}
+.kh-grid-dark {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 44px 44px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 30%, #000 40%, transparent 100%);
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 30%, #000 40%, transparent 100%);
+}
+.kh-dots {
+  background-image: radial-gradient(rgba(6, 78, 59, 0.12) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* Fine film grain for premium texture */
+.kh-grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.4;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Gradient hairline border via mask */
+.kh-ring-gradient {
+  position: relative;
+}
+.kh-ring-gradient::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.5), rgba(16, 185, 129, 0) 40%, rgba(45, 212, 191, 0.3));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Scroll reveal (safe: visible by default until JS mounts) */
+.kh-reveal {
+  opacity: 0;
+  transform: translateY(26px);
+  transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.kh-reveal-in { opacity: 1; transform: none; }
+
+.kh-bar-grow { transform-origin: left; animation: kh-grow 1.1s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .kh-rise,
+  .kh-scale-in,
+  .kh-float,
+  .kh-float-slow,
+  .kh-blob-1,
+  .kh-blob-2,
+  .kh-blob-3,
+  .kh-caret,
+  .kh-bar-grow {
+    animation: none !important;
+  }
+  .kh-reveal { opacity: 1 !important; transform: none !important; transition: none; }
+}
