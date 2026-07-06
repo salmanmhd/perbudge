@@ -1,6 +1,6 @@
 import type { FinancialSnapshot } from "@/lib/actions/finance-snapshot";
 import { formatINR } from "@/lib/finance";
-import { getCategoryEmoji } from "@/lib/categories";
+import { getCategoryColor } from "@/lib/categories";
 
 /** Very small, safe markdown → HTML for the AI digest text. */
 function digestToHtml(md: string): string {
@@ -58,7 +58,7 @@ export function renderWeeklyReportEmail(
       (c) => `
       <tr>
         <td style="padding:8px 0;color:#3f3f46;font-size:14px;text-transform:capitalize;">
-          ${getCategoryEmoji(c.category)} ${c.category}
+          <span style="display:inline-block;width:9px;height:9px;border-radius:9px;margin-right:8px;vertical-align:middle;background:${getCategoryColor(c.category)};"></span>${c.category}
         </td>
         <td style="padding:8px 0;color:#18181b;font-size:14px;font-weight:600;text-align:right;font-family:'JetBrains Mono',monospace;">
           ${formatINR(c.amount)}
@@ -116,7 +116,7 @@ export function renderWeeklyReportEmail(
           <tr>
             <td style="padding:16px 28px;">
               <div style="background:#f0fdfa;border:1px solid #99f6e4;border-radius:14px;padding:18px 20px;">
-                <div style="font-size:13px;font-weight:700;color:#0f766e;margin-bottom:6px;">✦ Your AI digest</div>
+                <div style="font-size:13px;font-weight:700;color:#0f766e;margin-bottom:6px;">Your AI digest</div>
                 ${digestToHtml(digest)}
               </div>
             </td>

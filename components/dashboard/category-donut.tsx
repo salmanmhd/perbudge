@@ -7,7 +7,8 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { getCategoryEmoji, getCategoryColor } from "@/lib/categories";
+import { getCategoryColor } from "@/lib/categories";
+import { CategoryIcon } from "@/components/category-icon";
 
 interface CategoryData {
   name: string;
@@ -42,8 +43,8 @@ function CustomTooltip({ active, payload }: any) {
 
   return (
     <div className="bg-popover/95 backdrop-blur-sm border border-border rounded-lg px-3 py-2 shadow-lg">
-      <p className="text-xs font-medium">
-        {getCategoryEmoji(name)} {name}
+      <p className="text-xs font-medium flex items-center gap-1.5 capitalize">
+        <CategoryIcon name={name} colored className="h-3.5 w-3.5" /> {name}
       </p>
       <p className="text-sm font-semibold font-mono">{formatted}</p>
     </div>
@@ -112,8 +113,9 @@ export function CategoryDonut({ data }: CategoryDonutProps) {
                     getCategoryColor(item.name) || CHART_COLORS[index % CHART_COLORS.length],
                 }}
               />
-              <span className="text-sm flex-1 truncate">
-                {getCategoryEmoji(item.name)} {item.name}
+              <span className="text-sm flex-1 truncate flex items-center gap-1.5 capitalize">
+                <CategoryIcon name={item.name} className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                {item.name}
               </span>
               <span className="text-xs text-muted-foreground font-mono">
                 {percent}%

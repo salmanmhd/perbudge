@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResponsiveModal } from "@/components/ui/responsive-modal";
 import { updateBudgetPlan, type BudgetPlan } from "@/lib/actions/budget";
-import { CATEGORIES, getCategoryEmoji } from "@/lib/categories";
+import { CATEGORIES } from "@/lib/categories";
+import { CategoryIcon } from "@/components/category-icon";
 import { formatINR } from "@/lib/finance";
 import { Loader2, Pencil, Target, PiggyBank, Sparkles } from "lucide-react";
 
@@ -146,8 +147,9 @@ export function BudgetPanel({ plan }: { plan: BudgetPlan }) {
                   return (
                     <div key={cb.category} className="space-y-1.5">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="capitalize">
-                          {getCategoryEmoji(cb.category)} {cb.category}
+                        <span className="capitalize flex items-center gap-2">
+                          <CategoryIcon name={cb.category} colored className="h-4 w-4" />
+                          {cb.category}
                         </span>
                         <span className="font-mono">
                           <span className={over ? "text-destructive font-semibold" : ""}>
@@ -353,8 +355,9 @@ function CategoryBudgetsButton({
           <div className="space-y-2.5 max-h-[45vh] overflow-y-auto pr-1">
             {expenseCats.map((c) => (
               <div key={c.id} className="flex items-center gap-3">
-                <span className="text-sm flex-1 capitalize">
-                  {c.emoji} {c.label}
+                <span className="text-sm flex-1 capitalize flex items-center gap-2">
+                  <CategoryIcon name={c.id} colored className="h-4 w-4" />
+                  {c.label}
                 </span>
                 <div className="relative w-32">
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">

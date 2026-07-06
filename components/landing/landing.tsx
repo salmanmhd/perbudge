@@ -13,6 +13,12 @@ import {
   MessageSquareText,
   Wallet,
   Zap,
+  Flame,
+  Utensils,
+  Car,
+  ShoppingBag,
+  ReceiptText,
+  Gamepad2,
 } from "lucide-react";
 import { Reveal } from "@/components/landing/reveal";
 import { CountUp } from "@/components/landing/count-up";
@@ -146,8 +152,9 @@ export function Landing() {
               <div className="kh-float absolute -left-3 top-6 hidden rounded-xl border border-emerald-950/8 bg-white/90 px-3 py-2 text-xs font-medium text-zinc-700 shadow-lg backdrop-blur sm:block" style={{ animationDelay: "1.2s" }}>
                 <span className="font-mono text-emerald-600">+₹1,200</span> settled
               </div>
-              <div className="kh-float absolute -right-2 bottom-4 hidden rounded-xl border border-emerald-950/8 bg-white/90 px-3 py-2 text-xs font-medium text-zinc-700 shadow-lg backdrop-blur sm:block" style={{ animationDelay: "0.5s" }}>
-                🔥 <span className="text-zinc-500">12-day streak</span>
+              <div className="kh-float absolute -right-2 bottom-4 hidden items-center gap-1.5 rounded-xl border border-emerald-950/8 bg-white/90 px-3 py-2 text-xs font-medium text-zinc-700 shadow-lg backdrop-blur sm:flex" style={{ animationDelay: "0.5s" }}>
+                <Flame className="h-3.5 w-3.5 text-amber-500" />
+                <span className="text-zinc-500">12-day streak</span>
               </div>
             </div>
           </div>
@@ -490,14 +497,14 @@ function LogVignette() {
       </div>
       <div className="mt-4 grid grid-cols-5 gap-1.5">
         {[
-          { e: "🍔", l: "Food", on: false },
-          { e: "🚕", l: "Transit", on: false },
-          { e: "🛍️", l: "Shop", on: true },
-          { e: "📱", l: "Bills", on: false },
-          { e: "🎮", l: "Fun", on: false },
+          { Icon: Utensils, l: "Food", on: false },
+          { Icon: Car, l: "Transit", on: false },
+          { Icon: ShoppingBag, l: "Shop", on: true },
+          { Icon: ReceiptText, l: "Bills", on: false },
+          { Icon: Gamepad2, l: "Fun", on: false },
         ].map((c) => (
-          <div key={c.l} className={`flex flex-col items-center gap-1 rounded-xl py-2.5 transition-colors ${c.on ? "bg-emerald-50 ring-2 ring-emerald-500" : "bg-zinc-50"}`}>
-            <span className="text-lg">{c.e}</span>
+          <div key={c.l} className={`flex flex-col items-center gap-1.5 rounded-xl py-2.5 transition-colors ${c.on ? "bg-emerald-50 ring-2 ring-emerald-500" : "bg-zinc-50"}`}>
+            <c.Icon className={`h-4 w-4 ${c.on ? "text-emerald-600" : "text-zinc-500"}`} />
             <span className="text-[10px] font-medium text-zinc-500">{c.l}</span>
           </div>
         ))}

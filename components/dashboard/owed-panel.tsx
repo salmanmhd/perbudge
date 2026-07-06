@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
 import { ResponsiveModal } from "@/components/ui/responsive-modal";
 import {
   createLedgerEntry,
@@ -325,12 +326,11 @@ function AddOwedButton({
             </div>
             <div className="space-y-2">
               <Label htmlFor="ow-due">Due date (optional)</Label>
-              <Input
+              <DatePicker
                 id="ow-due"
-                type="date"
                 value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="h-11"
+                onChange={setDueDate}
+                placeholder="Pick a date"
               />
             </div>
           </div>

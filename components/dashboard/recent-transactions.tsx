@@ -1,5 +1,5 @@
-import { getCategoryEmoji } from "@/lib/categories";
 import { CreditCard, Banknote } from "lucide-react";
+import { CategoryIcon } from "@/components/category-icon";
 
 export function RecentTransactions({ transactions }: { transactions: any[] }) {
   const formatCurrency = (amount: number) => {
@@ -55,9 +55,9 @@ export function RecentTransactions({ transactions }: { transactions: any[] }) {
           key={tx._id}
           className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors duration-150"
         >
-          {/* Category emoji */}
-          <div className="w-10 h-10 rounded-xl bg-muted/80 flex items-center justify-center text-lg shrink-0">
-            {getCategoryEmoji(tx.category)}
+          {/* Category icon */}
+          <div className="w-10 h-10 rounded-xl bg-muted/80 flex items-center justify-center shrink-0">
+            <CategoryIcon name={tx.category} colored className="h-5 w-5" />
           </div>
 
           {/* Details */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import {
@@ -14,6 +14,8 @@ import { createTransaction } from "@/lib/actions/transaction-db";
 import { getAccounts, type AccountView } from "@/lib/actions/accounts";
 import { parseTransactionNLP } from "@/app/actions/transaction";
 import { CATEGORIES } from "@/lib/categories";
+import { CategoryIcon } from "@/components/category-icon";
+import { DatePicker } from "@/components/ui/date-picker";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import {
   Check,
@@ -122,6 +124,14 @@ export function QuickAddDrawer({ children, triggerShortcut }: QuickAddDrawerProp
     setIsParsing(false);
   };
 
+  const visibleCategories = useMemo(
+    () =>
+      CATEGORIES.filter((c) =>
+        type === "income" ? c.id === "salary" || c.id === "others" : c.id !== "salary"
+      ),
+    [type]
+  );
+
   const handleCategorySelect = (cat: string) => {
     setCategory(cat);
     setStep("details");
@@ -173,6 +183,62 @@ export function QuickAddDrawer({ children, triggerShortcut }: QuickAddDrawerProp
     setOpen(false);
     resetForm();
   };
+
+  // Keep a fresh submit reference for the keyboard handler (avoids stale note/date).
+  const submitRef = useRef<() => void>(() => {});
+  submitRef.current = () => {
+    if (!isSubmitting) handleSubmit();
+  };
+
+  // ── Physical-keyboard support (great on laptop) ──
+  useEffect(() => {
+    if (!open || nlpMode || step === "success") return;
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement;
+      const inField =
+        el.tagName === "INPUT" ||
+        el.tagName === "TEXTAREA" ||
+        el.isContentEditable;
+
+      if (step === "amount") {
+        if (/^[0-9]$/.test(e.key)) {
+          e.preventDefault();
+          handleNumpad(Number(e.key));
+        } else if (e.key === ".") {
+          e.preventDefault();
+          handleNumpad(".");
+        } else if (e.key === "Backspace") {
+          e.preventDefault();
+          handleNumpad("backspace");
+        } else if (e.key === "Enter" && amount && parseFloat(amount) > 0) {
+          e.preventDefault();
+          setStep("category");
+        }
+      } else if (step === "category") {
+        if (inField) return;
+        // 1–9 selects the first nine categories, 0 selects the tenth.
+        const idx = e.key === "0" ? 9 : /^[1-9]$/.test(e.key) ? Number(e.key) - 1 : -1;
+        if (idx >= 0 && visibleCategories[idx]) {
+          e.preventDefault();
+          handleCategorySelect(visibleCategories[idx].label);
+        } else if (e.key === "Backspace" || e.key === "ArrowLeft") {
+          e.preventDefault();
+          setStep("amount");
+        }
+      } else if (step === "details") {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          submitRef.current();
+        } else if ((e.key === "Backspace" || e.key === "ArrowLeft") && !inField) {
+          e.preventDefault();
+          setStep("category");
+        }
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, nlpMode, step, amount, visibleCategories]);
 
   const content = (
     <div className="px-1 pb-2">
@@ -295,6 +361,15 @@ export function QuickAddDrawer({ children, triggerShortcut }: QuickAddDrawerProp
           >
             Next <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
+          {isDesktop && (
+            <p className="text-center text-xs text-muted-foreground">
+              Type the amount ·{" "}
+              <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px]">
+                Enter
+              </kbd>{" "}
+              to continue
+            </p>
+          )}
         </div>
       )}
 
@@ -309,25 +384,33 @@ export function QuickAddDrawer({ children, triggerShortcut }: QuickAddDrawerProp
               <ArrowLeft className="h-4 w-4" />
             </button>
             <h3 className="text-lg font-semibold">Pick a category</h3>
+            {isDesktop && (
+              <span className="ml-auto text-xs text-muted-foreground">
+                Press{" "}
+                <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px]">
+                  1–9
+                </kbd>
+              </span>
+            )}
           </div>
 
           <div className="grid grid-cols-5 gap-2">
-            {CATEGORIES.filter(
-              (c) =>
-                type === "income"
-                  ? c.id === "salary" || c.id === "others"
-                  : c.id !== "salary"
-            ).map((cat) => (
+            {visibleCategories.map((cat, idx) => (
               <button
                 key={cat.id}
                 onClick={() => handleCategorySelect(cat.label)}
-                className={`flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 ${
+                className={`relative flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 ${
                   category === cat.label
                     ? "bg-primary/15 ring-2 ring-primary"
                     : "bg-muted/50 hover:bg-muted"
                 }`}
               >
-                <span className="text-2xl">{cat.emoji}</span>
+                {isDesktop && idx < 10 && (
+                  <span className="absolute left-1.5 top-1.5 font-mono text-[9px] font-semibold leading-none text-muted-foreground/50">
+                    {(idx + 1) % 10}
+                  </span>
+                )}
+                <CategoryIcon name={cat.id} colored className="h-6 w-6" />
                 <span className="text-[11px] font-medium leading-tight text-center">
                   {cat.label}
                 </span>
@@ -352,8 +435,8 @@ export function QuickAddDrawer({ children, triggerShortcut }: QuickAddDrawerProp
 
           {/* Summary bar */}
           <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-xl">
-            <span className="text-2xl">
-              {CATEGORIES.find((c) => c.label === category)?.emoji || "🧾"}
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-background">
+              <CategoryIcon name={category} colored className="h-5 w-5" />
             </span>
             <div className="flex-1">
               <p className="font-medium">{category}</p>
@@ -444,12 +527,7 @@ export function QuickAddDrawer({ children, triggerShortcut }: QuickAddDrawerProp
             <label className="text-sm font-medium text-muted-foreground">
               Date
             </label>
-            <Input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="h-10"
-            />
+            <DatePicker value={date} onChange={setDate} disableFuture />
           </div>
 
           <Button
@@ -465,6 +543,15 @@ export function QuickAddDrawer({ children, triggerShortcut }: QuickAddDrawerProp
               "Save Transaction"
             )}
           </Button>
+          {isDesktop && !isSubmitting && (
+            <p className="text-center text-xs text-muted-foreground">
+              Press{" "}
+              <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px]">
+                Enter
+              </kbd>{" "}
+              to save
+            </p>
+          )}
         </div>
       )}
 

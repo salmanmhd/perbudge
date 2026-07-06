@@ -1,12 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sparkles, Check, Wallet } from "lucide-react";
+import {
+  Sparkles,
+  Check,
+  Wallet,
+  Utensils,
+  Landmark,
+  Handshake,
+  Briefcase,
+  type LucideIcon,
+} from "lucide-react";
 
 interface Moment {
   text: string;
-  emoji: string;
+  Icon: LucideIcon;
   bg: string;
+  fg: string;
   cat: string;
   sub: string;
   amount: string;
@@ -17,8 +27,9 @@ interface Moment {
 const MOMENTS: Moment[] = [
   {
     text: "Chai & samosa with the team, ₹240 on UPI",
-    emoji: "🍔",
+    Icon: Utensils,
     bg: "bg-amber-100",
+    fg: "text-amber-600",
     cat: "Food",
     sub: "Team chai · just now",
     amount: "−₹240",
@@ -27,8 +38,9 @@ const MOMENTS: Moment[] = [
   },
   {
     text: "Paid the car EMI, ₹15,000 this month",
-    emoji: "🏦",
+    Icon: Landmark,
     bg: "bg-violet-100",
+    fg: "text-violet-600",
     cat: "EMI · Car Loan",
     sub: "18 of 36 paid",
     amount: "−₹15,000",
@@ -37,8 +49,9 @@ const MOMENTS: Moment[] = [
   },
   {
     text: "Rahul paid back the ₹1,200 he owed",
-    emoji: "🤝",
+    Icon: Handshake,
     bg: "bg-emerald-100",
+    fg: "text-emerald-600",
     cat: "Settled up",
     sub: "Rahul · dinner split",
     amount: "+₹1,200",
@@ -47,8 +60,9 @@ const MOMENTS: Moment[] = [
   },
   {
     text: "Freelance invoice cleared, ₹40,000",
-    emoji: "💼",
+    Icon: Briefcase,
     bg: "bg-sky-100",
+    fg: "text-sky-600",
     cat: "Income",
     sub: "Client payment",
     amount: "+₹40,000",
@@ -144,8 +158,8 @@ export function TypingDemo() {
           }`}
         >
           <div className="flex items-center gap-3">
-            <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl text-xl ${moment.bg}`}>
-              {moment.emoji}
+            <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${moment.bg}`}>
+              <moment.Icon className={`h-5 w-5 ${moment.fg}`} />
             </span>
             <div className="min-w-0 flex-1">
               <p className="font-medium text-zinc-900">{moment.cat}</p>

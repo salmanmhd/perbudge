@@ -1,6 +1,6 @@
 "use client";
 
-import { Wallet, TrendingDown } from "lucide-react";
+import { Wallet, TrendingDown, AlertTriangle } from "lucide-react";
 
 interface TodayHeroProps {
   totalSpent: number;
@@ -56,7 +56,7 @@ export function TodayHero({
           <div>
             <p className="text-sm text-muted-foreground">{today}</p>
             <h2 className="text-xl md:text-2xl font-bold tracking-tight">
-              {greeting} 👋
+              {greeting}
             </h2>
           </div>
 
@@ -128,8 +128,9 @@ export function TodayHero({
                 {formatCurrency(monthlyExpense)} / {formatCurrency(monthlyBudget)}
               </p>
               {budgetWarning && (
-                <p className={`text-[11px] font-medium mt-0.5 ${budgetDanger ? "text-destructive" : "text-amber-500"}`}>
-                  {budgetDanger ? "⚠️ Budget exceeded!" : "⚠️ Nearing budget limit"}
+                <p className={`text-[11px] font-medium mt-0.5 inline-flex items-center gap-1 ${budgetDanger ? "text-destructive" : "text-amber-500"}`}>
+                  <AlertTriangle className="h-3 w-3" />
+                  {budgetDanger ? "Budget exceeded!" : "Nearing budget limit"}
                 </p>
               )}
             </div>

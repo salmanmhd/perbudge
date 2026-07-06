@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Trash2, ChevronLeft, ChevronRight, CreditCard, Banknote } from "lucide-react";
-import { getCategoryEmoji } from "@/lib/categories";
+import { CategoryIcon } from "@/components/category-icon";
 import { deleteTransaction } from "@/lib/actions/transaction-list";
 import { useRouter } from "next/navigation";
 
@@ -98,8 +98,8 @@ export function TransactionTable({
           <div key={tx._id} className="p-4 rounded-xl border border-border/40 bg-card flex flex-col gap-3">
             <div className="flex justify-between items-start">
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-muted/80 flex items-center justify-center text-lg shrink-0">
-                  {getCategoryEmoji(tx.category)}
+                <div className="w-10 h-10 rounded-xl bg-muted/80 flex items-center justify-center shrink-0">
+                  <CategoryIcon name={tx.category} colored className="h-5 w-5" />
                 </div>
                 <div className="space-y-1">
                   <p className="font-medium">{tx.category}</p>
@@ -173,7 +173,7 @@ export function TransactionTable({
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <span className="text-base">{getCategoryEmoji(tx.category)}</span>
+                    <CategoryIcon name={tx.category} colored className="h-4 w-4 shrink-0" />
                     <div>
                       <p className="font-medium">{tx.category}</p>
                       {tx.note && <p className="text-xs text-muted-foreground">{tx.note}</p>}
