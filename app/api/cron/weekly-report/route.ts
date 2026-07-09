@@ -16,7 +16,7 @@ function appUrl(req: NextRequest): string {
   return (
     process.env.NEXT_PUBLIC_APP_URL ||
     req.nextUrl.origin ||
-    "https://kharcha.app"
+    "https://perbudge.app"
   );
 }
 

@@ -47,7 +47,7 @@ export function ReportSettings({ initialEnabled }: { initialEnabled: boolean }) 
         </CardTitle>
         <CardDescription>
           A Monday-morning digest of your spending, savings rate, and one thing to
-          fix — written by Kharcha&apos;s AI.
+          fix — written by Perbudge&apos;s AI.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

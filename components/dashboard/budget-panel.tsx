@@ -295,7 +295,7 @@ function EditPlanButton({
               className="w-full rounded-xl border border-input bg-transparent px-3 py-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:border-ring resize-none"
             />
             <p className="text-xs text-muted-foreground">
-              Kharcha&apos;s AI uses this to tailor advice to you.
+              Perbudge&apos;s AI uses this to tailor advice to you.
             </p>
           </div>
 

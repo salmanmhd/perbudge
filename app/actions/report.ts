@@ -29,7 +29,7 @@ export async function sendTestReport() {
 
   const context = formatSnapshotContext(snapshot);
   const digest = await generateDigestFromContext(context);
-  const url = process.env.NEXT_PUBLIC_APP_URL || "https://kharcha.app";
+  const url = process.env.NEXT_PUBLIC_APP_URL || "https://perbudge.app";
   const { subject, html } = renderWeeklyReportEmail(snapshot, digest, url);
 
   const result = await sendEmail({ to: user.email, subject, html });

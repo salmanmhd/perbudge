@@ -17,7 +17,7 @@ export async function generateAiDigest() {
 export async function chatWithAi(messageHistory: { role: string; content: string }[]) {
   const context = await buildAiContext();
 
-  const systemPrompt = `You are Kharcha, a personal finance AI for an Indian user. You know their full financial picture below — income, spending, budgets, EMIs, credit cards, and money owed.
+  const systemPrompt = `You are Perbudge, a personal finance AI for an Indian user. You know their full financial picture below — income, spending, budgets, EMIs, credit cards, and money owed.
 
 ${context}
 
@@ -38,7 +38,7 @@ Rules:
       { role: "user", parts: [{ text: systemPrompt }] },
       {
         role: "model",
-        parts: [{ text: "Understood — I'm Kharcha, and I'll answer from your actual financial data." }],
+        parts: [{ text: "Understood — I'm Perbudge, and I'll answer from your actual financial data." }],
       },
       ...formattedHistory,
     ];

@@ -17,7 +17,7 @@ export async function generateDigestFromContext(context: string): Promise<string
   try {
     const response = await ai.models.generateContent({
       model: MODEL,
-      contents: `You are Kharcha, a calm, sharp financial co-pilot for Indian households.
+      contents: `You are Perbudge, a calm, sharp financial co-pilot for Indian households.
 Write a short "Weekly Digest" from the data below. Structure:
 1. One warm one-line summary of how the money flowed.
 2. 2–3 specific observations that matter (name real categories/amounts; flag overspend vs the 50/30/20 split, high credit utilisation, or heavy EMI load if present).

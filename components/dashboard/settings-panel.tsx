@@ -26,7 +26,7 @@ export function SettingsPanel() {
       <Card className="translucent-surface border-0">
         <CardHeader>
           <CardTitle>Appearance</CardTitle>
-          <CardDescription>Choose how Kharcha looks for you.</CardDescription>
+          <CardDescription>Choose how Perbudge looks for you.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-3">
@@ -88,7 +88,7 @@ export function SettingsPanel() {
       {/* About */}
       <Card className="translucent-surface border-0">
         <CardHeader>
-          <CardTitle>About Kharcha</CardTitle>
+          <CardTitle>About Perbudge</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-sm text-muted-foreground space-y-1">

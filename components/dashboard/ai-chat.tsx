@@ -8,7 +8,7 @@ import { chatWithAi } from "@/app/actions/chat";
 
 export function AiChat() {
   const [messages, setMessages] = useState<{ role: string; content: string }[]>([
-    { role: "assistant", content: "Hi! I'm Kharcha. I can analyze your transactions and answer any questions about your money. What would you like to know?" }
+    { role: "assistant", content: "Hi! I'm Perbudge. I can analyze your transactions and answer any questions about your money. What would you like to know?" }
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);

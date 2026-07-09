@@ -50,7 +50,7 @@ export function renderWeeklyReportEmail(
       ? Math.round(((s.monthlyIncome - s.monthExpense) / s.monthlyIncome) * 100)
       : null;
 
-  const subject = `Your Kharcha weekly report — ${formatINR(s.monthExpense)} spent this month`;
+  const subject = `Your Perbudge weekly report — ${formatINR(s.monthExpense)} spent this month`;
 
   const topCategories = s.categorySpend
     .slice(0, 4)
@@ -146,7 +146,7 @@ export function renderWeeklyReportEmail(
           <tr>
             <td style="padding:0 28px 28px;text-align:center;">
               <div style="font-size:12px;color:#a1a1aa;line-height:1.6;">
-                Kharcha · calmer money decisions.<br/>
+                Perbudge · calmer money decisions.<br/>
                 You can turn off weekly reports anytime in Settings.
               </div>
             </td>

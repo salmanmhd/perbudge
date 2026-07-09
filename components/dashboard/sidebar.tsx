@@ -100,7 +100,7 @@ export function DashboardNavigation() {
               <span className="text-primary-foreground font-bold text-sm">₹</span>
             </div>
             <span className="font-bold text-xl tracking-tight opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
-              Kharcha
+              Perbudge
             </span>
           </Link>
         </div>

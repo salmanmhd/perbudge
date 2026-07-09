@@ -16,8 +16,14 @@ const fontMono = JetBrains_Mono({
 })
 
 export const metadata = {
-  title: "Kharcha — Know your money. Control your future.",
+  title: "Perbudge — Know your money. Control your future.",
   description: "AI-powered personal finance tracker built for Indian families. Log expenses with zero friction, get intelligent insights.",
+}
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover" as const,
 }
 
 export default function RootLayout({

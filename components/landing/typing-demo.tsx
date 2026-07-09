@@ -125,7 +125,7 @@ export function TypingDemo() {
           </span>
           <p className="min-h-[1.5rem] text-[15px] leading-6 text-zinc-700">
             {typed || (
-              <span className="text-zinc-400">Just tell Kharcha what you spent…</span>
+              <span className="text-zinc-400">Just tell Perbudge what you spent…</span>
             )}
             {!reduce && !complete && (
               <span className="kh-caret ml-0.5 bg-emerald-500 align-middle" style={{ height: "1.1em" }}>

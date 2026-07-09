@@ -35,7 +35,7 @@ export function Landing() {
               ₹
             </span>
             <span className="hidden text-base font-semibold tracking-tight min-[360px]:inline sm:text-lg">
-              Kharcha
+              Perbudge
             </span>
           </Link>
           <nav className="hidden items-center gap-8 text-sm font-medium text-zinc-600 md:flex">
@@ -189,7 +189,7 @@ export function Landing() {
             <MoveRow index="02 — See" title="Watch the month come into focus." body="Balance, income, and spending in clean, readable figures. A donut that shows where money really goes — no dense tables to decode." reverse>
               <SeeVignette />
             </MoveRow>
-            <MoveRow index="03 — Ask" title="Get an answer before you spend." body="Kharcha reads your real income, EMIs, and habits, then tells you plainly what you can afford and where you're slipping." reverse={false}>
+            <MoveRow index="03 — Ask" title="Get an answer before you spend." body="Perbudge reads your real income, EMIs, and habits, then tells you plainly what you can afford and where you're slipping." reverse={false}>
               <AskVignette />
             </MoveRow>
           </div>
@@ -312,7 +312,7 @@ export function Landing() {
                 <span className="text-emerald-700">actual numbers.</span>
               </h2>
               <p className="mt-5 text-lg leading-relaxed text-zinc-600">
-                Most apps hand you charts and wish you luck. Kharcha reads your
+                Most apps hand you charts and wish you luck. Perbudge reads your
                 income, obligations, and habits, then tells you the two or three
                 things that genuinely matter this week — and one thing to do about it.
               </p>
@@ -411,7 +411,7 @@ export function Landing() {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 py-8 text-sm text-zinc-500 sm:flex-row sm:px-8">
           <div className="flex items-center gap-2">
             <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-emerald-900 text-xs font-bold text-white">₹</span>
-            <span className="font-medium text-zinc-700">Kharcha</span>
+            <span className="font-medium text-zinc-700">Perbudge</span>
           </div>
           <p>Built for everyday finance, shared homes, and calmer decisions.</p>
         </div>

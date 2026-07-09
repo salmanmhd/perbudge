@@ -129,6 +129,21 @@
     }
 }
 
+/* ── Mobile: stop the focus auto-zoom ──
+   iOS Safari and Android Chrome zoom the viewport whenever a focused form
+   control has a computed font-size below 16px (our inputs render at 14px, and
+   12px on desktop). That's what makes the page jump/zoom the moment the
+   keyboard opens, forcing a manual zoom-out. Flooring the *rendered* font size
+   at 16px on small screens removes the trigger entirely while leaving the
+   compact desktop sizing (md: text-xs) untouched. Pinch-zoom stays available. */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
 /* react-day-picker brand accent */
 .kh-rdp {
   --rdp-accent-color: var(--primary);

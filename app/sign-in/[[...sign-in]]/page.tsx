@@ -19,7 +19,7 @@ export default function SignInPage() {
           <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center mb-2 shadow-lg shadow-primary/20">
             <span className="text-primary-foreground font-bold text-xl">₹</span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Welcome to Kharcha</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Welcome to Perbudge</h1>
           <p className="text-sm text-muted-foreground">Sign in to continue to your dashboard</p>
         </div>
 

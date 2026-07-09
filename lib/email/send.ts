@@ -26,7 +26,7 @@ export async function sendEmail({
     return { success: false, skipped: true, error: "RESEND_API_KEY not set" };
   }
 
-  const from = process.env.RESEND_FROM || "Kharcha <onboarding@resend.dev>";
+  const from = process.env.RESEND_FROM || "Perbudge <onboarding@resend.dev>";
 
   try {
     const res = await fetch("https://api.resend.com/emails", {

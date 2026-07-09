@@ -20,7 +20,7 @@ export default function SignUpPage() {
             <span className="text-primary-foreground font-bold text-xl">₹</span>
           </div>
           <h1 className="text-2xl font-bold tracking-tight">Create your account</h1>
-          <p className="text-sm text-muted-foreground">Start tracking your Kharcha today</p>
+          <p className="text-sm text-muted-foreground">Start tracking your money today</p>
         </div>
 
         <div className="w-full">
