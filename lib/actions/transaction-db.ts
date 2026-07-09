@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { ensureUserInDb } from "@/lib/actions/dashboard-data";
 import Transaction from "@/lib/models/transaction";
 import type { PaymentMode } from "@/lib/models/transaction";
+import { round2 } from "@/lib/finance";
 
 export async function createTransaction(data: {
   amount: number;
@@ -22,9 +23,14 @@ export async function createTransaction(data: {
       return { success: false, error: "Unauthorized" };
     }
 
+    const amount = round2(Number(data.amount));
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return { success: false, error: "Amount must be greater than 0." };
+    }
+
     const newTx = await Transaction.create({
       userId: userObjectId,
-      amount: data.amount,
+      amount,
       category: data.category,
       type: data.type,
       paymentMode: data.paymentMode || "cash",
@@ -70,7 +76,7 @@ export async function updateTransaction(
     }
 
     const updateFields: any = {};
-    if (data.amount !== undefined) updateFields.amount = data.amount;
+    if (data.amount !== undefined) updateFields.amount = round2(Number(data.amount));
     if (data.category !== undefined) updateFields.category = data.category;
     if (data.type !== undefined) updateFields.type = data.type;
     if (data.paymentMode !== undefined) updateFields.paymentMode = data.paymentMode;

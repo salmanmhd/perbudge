@@ -9,8 +9,9 @@ import { ResponsiveModal } from "@/components/ui/responsive-modal";
 import { updateBudgetPlan, type BudgetPlan } from "@/lib/actions/budget";
 import { CATEGORIES } from "@/lib/categories";
 import { CategoryIcon } from "@/components/category-icon";
-import { formatINR } from "@/lib/finance";
-import { Loader2, Pencil, Target, PiggyBank, Sparkles } from "lucide-react";
+import { formatINR, sanitizeAmountInput } from "@/lib/finance";
+import { BudgetCoach } from "@/components/dashboard/budget-coach";
+import { Loader2, Pencil, Target, PiggyBank, Sparkles, Gauge } from "lucide-react";
 
 const BUCKET_META = {
   needs: { label: "Needs", hint: "Rent, food, bills, transport, health", color: "bg-primary" },
@@ -70,6 +71,12 @@ export function BudgetPanel({ plan }: { plan: BudgetPlan }) {
               sub={`target ${plan.savingsTargetPct}%`}
             />
           </div>
+
+          {/* Pace projection */}
+          <PaceCard plan={plan} />
+
+          {/* AI budget coach */}
+          <BudgetCoach />
 
           {/* 50/30/20 */}
           <div className="rounded-2xl border border-border/60 p-5 space-y-5">
@@ -194,6 +201,59 @@ export function BudgetPanel({ plan }: { plan: BudgetPlan }) {
   );
 }
 
+function PaceCard({ plan }: { plan: BudgetPlan }) {
+  const projected = plan.projectedMonthEndSpend;
+  const projectedSavings = plan.monthlyIncome - projected;
+  const overIncome = projected > plan.monthlyIncome;
+  const belowTarget =
+    plan.monthlyIncome > 0 &&
+    projectedSavings < (plan.savingsTargetPct / 100) * plan.monthlyIncome;
+  const tone = overIncome ? "bad" : belowTarget ? "warn" : "good";
+  const toneRing =
+    tone === "bad"
+      ? "border-destructive/30 bg-destructive/5"
+      : tone === "warn"
+      ? "border-amber-500/30 bg-amber-500/5"
+      : "border-emerald-500/30 bg-emerald-500/5";
+  const toneText =
+    tone === "bad"
+      ? "text-destructive"
+      : tone === "warn"
+      ? "text-amber-600 dark:text-amber-500"
+      : "text-emerald-600 dark:text-emerald-500";
+
+  return (
+    <div className={`rounded-2xl border p-5 ${toneRing}`}>
+      <div className="flex items-center gap-2">
+        <Gauge className={`h-4 w-4 ${toneText}`} />
+        <h2 className="font-semibold text-sm">This month&apos;s pace</h2>
+        <span className="ml-auto text-xs text-muted-foreground">
+          Day {plan.daysElapsed} of {plan.daysInMonth}
+        </span>
+      </div>
+      <p className="mt-3 text-sm text-foreground/90 leading-relaxed">
+        You&apos;ve spent{" "}
+        <span className="font-mono font-semibold">{formatINR(plan.totalSpent)}</span>{" "}
+        so far. At this pace you&apos;ll finish the month at{" "}
+        <span className={`font-mono font-semibold ${toneText}`}>
+          {formatINR(projected)}
+        </span>
+        {plan.monthlyIncome > 0 && (
+          <>
+            {" "}
+            — a projected{" "}
+            <span className={`font-semibold ${projectedSavings >= 0 ? "" : "text-destructive"}`}>
+              {projectedSavings >= 0 ? "saving" : "shortfall"} of{" "}
+              {formatINR(Math.abs(projectedSavings))}
+            </span>
+            .
+          </>
+        )}
+      </p>
+    </div>
+  );
+}
+
 function SummaryStat({
   label,
   value,
@@ -266,7 +326,7 @@ function EditPlanButton({
               id="bp-income"
               inputMode="numeric"
               value={monthlyIncome}
-              onChange={(e) => setIncome(e.target.value.replace(/[^0-9]/g, ""))}
+              onChange={(e) => setIncome(sanitizeAmountInput(e.target.value))}
               placeholder="60000"
               className="h-11 font-mono"
             />
@@ -369,7 +429,7 @@ function CategoryBudgetsButton({
                     onChange={(e) =>
                       setLimits((p) => ({
                         ...p,
-                        [c.id]: e.target.value.replace(/[^0-9]/g, ""),
+                        [c.id]: sanitizeAmountInput(e.target.value),
                       }))
                     }
                     placeholder="0"

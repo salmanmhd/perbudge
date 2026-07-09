@@ -15,7 +15,7 @@ import {
   type LedgerView,
 } from "@/lib/actions/ledger";
 import type { LedgerKind, LedgerDirection } from "@/lib/models/ledger";
-import { formatINR, daysUntil } from "@/lib/finance";
+import { formatINR, daysUntil, sanitizeAmountInput } from "@/lib/finance";
 import {
   Plus,
   Loader2,
@@ -317,9 +317,9 @@ function AddOwedButton({
               <Label htmlFor="ow-amount">Amount</Label>
               <Input
                 id="ow-amount"
-                inputMode="numeric"
+                inputMode="decimal"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+                onChange={(e) => setAmount(sanitizeAmountInput(e.target.value))}
                 placeholder="2000"
                 className="h-11 font-mono"
               />

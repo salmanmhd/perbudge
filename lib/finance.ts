@@ -14,8 +14,38 @@ export function formatINR(amount: number, opts?: { compact?: boolean }): string 
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
-    maximumFractionDigits: 0,
+    // Show paise only when the amount actually has them: ₹500 stays ₹500,
+    // but ₹10.29 renders in full.
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
   }).format(amount);
+}
+
+/** Round a money value to 2 decimal places, killing binary-float noise. */
+export function round2(n: number): number {
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+
+/**
+ * Sanitize a raw text field into a valid money string: digits with at most one
+ * decimal point and two decimal places. Safe to use directly in a controlled
+ * input's onChange. Empty string stays empty.
+ */
+export function sanitizeAmountInput(raw: string): string {
+  let s = raw.replace(/[^0-9.]/g, "");
+  const firstDot = s.indexOf(".");
+  if (firstDot !== -1) {
+    const intPart = s.slice(0, firstDot);
+    const decPart = s.slice(firstDot + 1).replace(/\./g, "").slice(0, 2);
+    s = `${intPart}.${decPart}`;
+  }
+  return s;
+}
+
+/** Digits-only sanitizer for whole-number fields (days, counts, tenure). */
+export function sanitizeIntInput(raw: string, maxLen?: number): string {
+  const s = raw.replace(/[^0-9]/g, "");
+  return maxLen ? s.slice(0, maxLen) : s;
 }
 
 /* ── 50 / 30 / 20 classification ─────────────────────────────── */

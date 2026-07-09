@@ -10,19 +10,40 @@ export async function ensureUserInDb() {
   if (!userId) return null;
 
   await connectToDatabase();
-  
-  let dbUser = await User.findOne({ clerkId: userId });
-  if (!dbUser) {
-    const user = await currentUser();
-    const email = user?.emailAddresses[0]?.emailAddress || `${userId}@placeholder.com`;
-    dbUser = await User.create({
-      clerkId: userId,
-      email: email,
-      firstName: user?.firstName || "",
-      lastName: user?.lastName || "",
-    });
+
+  // Fast path: user already exists.
+  const existing = await User.findOne({ clerkId: userId }).select("_id");
+  if (existing) return existing._id;
+
+  // First login. The dashboard fires ~10 data actions in parallel and each
+  // calls this — so several requests race to create the same user. Use an
+  // atomic upsert ($setOnInsert) and treat a duplicate-key loss as success by
+  // re-fetching, so the E11000 race can never surface to the caller.
+  const user = await currentUser();
+  const email = user?.emailAddresses[0]?.emailAddress || `${userId}@placeholder.com`;
+
+  try {
+    const dbUser = await User.findOneAndUpdate(
+      { clerkId: userId },
+      {
+        $setOnInsert: {
+          clerkId: userId,
+          email,
+          firstName: user?.firstName || "",
+          lastName: user?.lastName || "",
+        },
+      },
+      { upsert: true, new: true }
+    );
+    return dbUser!._id;
+  } catch (err: any) {
+    // A concurrent request won the insert — the row now exists, so fetch it.
+    if (err?.code === 11000) {
+      const dbUser = await User.findOne({ clerkId: userId }).select("_id");
+      if (dbUser) return dbUser._id;
+    }
+    throw err;
   }
-  return dbUser._id;
 }
 
 export async function getSummaryMetrics() {

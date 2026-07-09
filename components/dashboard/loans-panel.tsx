@@ -8,11 +8,12 @@ import { Label } from "@/components/ui/label";
 import { ResponsiveModal } from "@/components/ui/responsive-modal";
 import {
   createLoan,
+  updateLoan,
   payEmi,
   deleteLoan,
   type LoanView,
 } from "@/lib/actions/loans";
-import { formatINR, daysUntil } from "@/lib/finance";
+import { formatINR, daysUntil, sanitizeAmountInput, sanitizeIntInput } from "@/lib/finance";
 import {
   Plus,
   Loader2,
@@ -20,6 +21,7 @@ import {
   Landmark,
   Check,
   CalendarClock,
+  Pencil,
 } from "lucide-react";
 
 export function LoansPanel({
@@ -190,7 +192,7 @@ function LoanCard({ loan, onDone }: { loan: LoanView; onDone: () => void }) {
           </span>
         )}
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           {!isClosed && (
             <Button
               size="sm"
@@ -216,6 +218,7 @@ function LoanCard({ loan, onDone }: { loan: LoanView; onDone: () => void }) {
               )}
             </Button>
           )}
+          <EditLoanButton loan={loan} onDone={onDone} />
           <button
             aria-label="Delete loan"
             onClick={async () => {
@@ -223,7 +226,7 @@ function LoanCard({ loan, onDone }: { loan: LoanView; onDone: () => void }) {
               await deleteLoan(loan._id);
               onDone();
             }}
-            className="opacity-0 group-hover:opacity-100 focus:opacity-100 text-muted-foreground hover:text-destructive transition-all p-1"
+            className="text-muted-foreground hover:text-destructive transition-colors p-1.5 rounded-lg hover:bg-muted"
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -234,19 +237,6 @@ function LoanCard({ loan, onDone }: { loan: LoanView; onDone: () => void }) {
 }
 
 function AddLoanButton({ onDone }: { onDone: () => void }) {
-  const [name, setName] = useState("");
-  const [lender, setLender] = useState("");
-  const [principal, setPrincipal] = useState("");
-  const [emiAmount, setEmiAmount] = useState("");
-  const [tenureMonths, setTenureMonths] = useState("");
-  const [emisPaid, setEmisPaid] = useState("");
-  const [dueDay, setDueDay] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  const num = (s: string) => (s ? Number(s) : 0);
-  const valid =
-    name.trim() && num(emiAmount) > 0 && num(tenureMonths) > 0 && num(dueDay) >= 1;
-
   return (
     <ResponsiveModal
       title="Add loan / EMI"
@@ -258,94 +248,169 @@ function AddLoanButton({ onDone }: { onDone: () => void }) {
       }
     >
       {(close) => (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2 col-span-2">
-              <Label htmlFor="ln-name">Name</Label>
-              <Input
-                id="ln-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Car Loan"
-                className="h-11"
-              />
-            </div>
-            <div className="space-y-2 col-span-2">
-              <Label htmlFor="ln-lender">Lender (optional)</Label>
-              <Input
-                id="ln-lender"
-                value={lender}
-                onChange={(e) => setLender(e.target.value)}
-                placeholder="HDFC Bank"
-                className="h-11"
-              />
-            </div>
-            <NumField
-              id="ln-emi"
-              label="Monthly EMI"
-              value={emiAmount}
-              onChange={setEmiAmount}
-              placeholder="15000"
-            />
-            <NumField
-              id="ln-due"
-              label="Due day (1–31)"
-              value={dueDay}
-              onChange={(v) => setDueDay(v.slice(0, 2))}
-              placeholder="5"
-            />
-            <NumField
-              id="ln-tenure"
-              label="Total EMIs"
-              value={tenureMonths}
-              onChange={setTenureMonths}
-              placeholder="36"
-            />
-            <NumField
-              id="ln-paid"
-              label="EMIs paid"
-              value={emisPaid}
-              onChange={setEmisPaid}
-              placeholder="0"
-            />
-            <NumField
-              id="ln-principal"
-              label="Principal (optional)"
-              value={principal}
-              onChange={setPrincipal}
-              placeholder="500000"
-              className="col-span-2"
-            />
-          </div>
-
-          <Button
-            className="w-full h-12 rounded-xl text-base"
-            disabled={saving || !valid}
-            onClick={async () => {
-              setSaving(true);
-              const res = await createLoan({
-                name: name.trim(),
-                lender: lender.trim() || undefined,
-                principal: num(principal) || num(emiAmount) * num(tenureMonths),
-                emiAmount: num(emiAmount),
-                tenureMonths: num(tenureMonths),
-                emisPaid: num(emisPaid),
-                dueDay: num(dueDay),
-              });
-              if (res.success) {
-                close();
-                onDone();
-              } else {
-                alert(res.error);
-                setSaving(false);
-              }
-            }}
-          >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add loan"}
-          </Button>
-        </div>
+        <LoanForm
+          submitLabel="Add loan"
+          onSubmit={createLoan}
+          onDone={() => {
+            close();
+            onDone();
+          }}
+        />
       )}
     </ResponsiveModal>
+  );
+}
+
+function EditLoanButton({ loan, onDone }: { loan: LoanView; onDone: () => void }) {
+  return (
+    <ResponsiveModal
+      title="Edit loan / EMI"
+      description="Fix details or revise the EMI count."
+      trigger={
+        <button
+          aria-label="Edit loan"
+          className="text-muted-foreground hover:text-foreground transition-colors p-1.5 rounded-lg hover:bg-muted"
+        >
+          <Pencil className="h-4 w-4" />
+        </button>
+      }
+    >
+      {(close) => (
+        <LoanForm
+          loan={loan}
+          submitLabel="Save changes"
+          onSubmit={(data) => updateLoan(loan._id, data)}
+          onDone={() => {
+            close();
+            onDone();
+          }}
+        />
+      )}
+    </ResponsiveModal>
+  );
+}
+
+/** Shared add/edit form. Pre-fills from `loan` when editing. */
+function LoanForm({
+  loan,
+  submitLabel,
+  onSubmit,
+  onDone,
+}: {
+  loan?: LoanView;
+  submitLabel: string;
+  onSubmit: (data: {
+    name: string;
+    lender?: string;
+    principal: number;
+    emiAmount: number;
+    tenureMonths: number;
+    emisPaid: number;
+    dueDay: number;
+  }) => Promise<{ success: boolean; error?: string }>;
+  onDone: () => void;
+}) {
+  const [name, setName] = useState(loan?.name ?? "");
+  const [lender, setLender] = useState(loan?.lender ?? "");
+  const [principal, setPrincipal] = useState(loan ? String(loan.principal) : "");
+  const [emiAmount, setEmiAmount] = useState(loan ? String(loan.emiAmount) : "");
+  const [tenureMonths, setTenureMonths] = useState(loan ? String(loan.tenureMonths) : "");
+  const [emisPaid, setEmisPaid] = useState(loan ? String(loan.emisPaid) : "");
+  const [dueDay, setDueDay] = useState(loan ? String(loan.dueDay) : "");
+  const [saving, setSaving] = useState(false);
+
+  const num = (s: string) => (s ? Number(s) : 0);
+  const valid =
+    name.trim() && num(emiAmount) > 0 && num(tenureMonths) > 0 && num(dueDay) >= 1;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2 col-span-2">
+          <Label htmlFor="ln-name">Name</Label>
+          <Input
+            id="ln-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Car Loan"
+            className="h-11"
+          />
+        </div>
+        <div className="space-y-2 col-span-2">
+          <Label htmlFor="ln-lender">Lender (optional)</Label>
+          <Input
+            id="ln-lender"
+            value={lender}
+            onChange={(e) => setLender(e.target.value)}
+            placeholder="HDFC Bank"
+            className="h-11"
+          />
+        </div>
+        <NumField
+          id="ln-emi"
+          label="Monthly EMI"
+          value={emiAmount}
+          onChange={setEmiAmount}
+          placeholder="15000"
+          decimal
+        />
+        <NumField
+          id="ln-due"
+          label="Due day (1–31)"
+          value={dueDay}
+          onChange={(v) => setDueDay(sanitizeIntInput(v, 2))}
+          placeholder="5"
+        />
+        <NumField
+          id="ln-tenure"
+          label="Total EMIs"
+          value={tenureMonths}
+          onChange={(v) => setTenureMonths(sanitizeIntInput(v))}
+          placeholder="36"
+        />
+        <NumField
+          id="ln-paid"
+          label="EMIs paid"
+          value={emisPaid}
+          onChange={(v) => setEmisPaid(sanitizeIntInput(v))}
+          placeholder="0"
+        />
+        <NumField
+          id="ln-principal"
+          label="Principal (optional)"
+          value={principal}
+          onChange={setPrincipal}
+          placeholder="500000"
+          decimal
+          className="col-span-2"
+        />
+      </div>
+
+      <Button
+        className="w-full h-12 rounded-xl text-base"
+        disabled={saving || !valid}
+        onClick={async () => {
+          setSaving(true);
+          const res = await onSubmit({
+            name: name.trim(),
+            lender: lender.trim() || undefined,
+            principal: num(principal) || num(emiAmount) * num(tenureMonths),
+            emiAmount: num(emiAmount),
+            tenureMonths: num(tenureMonths),
+            emisPaid: num(emisPaid),
+            dueDay: num(dueDay),
+          });
+          if (res.success) {
+            onDone();
+          } else {
+            alert(res.error);
+            setSaving(false);
+          }
+        }}
+      >
+        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : submitLabel}
+      </Button>
+    </div>
   );
 }
 
@@ -356,6 +421,7 @@ function NumField({
   onChange,
   placeholder,
   className = "",
+  decimal = false,
 }: {
   id: string;
   label: string;
@@ -363,15 +429,23 @@ function NumField({
   onChange: (v: string) => void;
   placeholder: string;
   className?: string;
+  /** Allow up to 2 decimal places (money fields); otherwise digits only. */
+  decimal?: boolean;
 }) {
   return (
     <div className={`space-y-2 ${className}`}>
       <Label htmlFor={id}>{label}</Label>
       <Input
         id={id}
-        inputMode="numeric"
+        inputMode={decimal ? "decimal" : "numeric"}
         value={value}
-        onChange={(e) => onChange(e.target.value.replace(/[^0-9]/g, ""))}
+        onChange={(e) =>
+          onChange(
+            decimal
+              ? sanitizeAmountInput(e.target.value)
+              : sanitizeIntInput(e.target.value)
+          )
+        }
         placeholder={placeholder}
         className="h-11 font-mono"
       />

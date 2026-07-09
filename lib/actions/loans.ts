@@ -9,6 +9,7 @@ import {
   loanRemainingEmis,
   loanProgressPct,
   nextDueDate,
+  round2,
 } from "@/lib/finance";
 
 export interface LoanView {
@@ -75,7 +76,7 @@ export async function getMonthlyEmiTotal(): Promise<number> {
   return agg[0]?.total || 0;
 }
 
-export async function createLoan(data: {
+export interface LoanInput {
   name: string;
   lender?: string;
   principal: number;
@@ -86,16 +87,72 @@ export async function createLoan(data: {
   dueDay: number;
   startDate?: string;
   notes?: string;
-}) {
+}
+
+/**
+ * Validate + normalise a loan payload. Returns a cleaned object ready for the
+ * DB, or an error string describing the first problem. Amounts are rounded to
+ * paise; counts/days are floored to integers so bad client input can't reach
+ * Mongoose (which otherwise fails with a cryptic ValidationError).
+ */
+function normalizeLoan(data: LoanInput): { value?: any; error?: string } {
+  const name = (data.name || "").trim();
+  if (!name) return { error: "Give the loan a name." };
+
+  const emiAmount = round2(Number(data.emiAmount));
+  if (!Number.isFinite(emiAmount) || emiAmount <= 0)
+    return { error: "Monthly EMI must be a number greater than 0." };
+
+  const tenureMonths = Math.floor(Number(data.tenureMonths));
+  if (!Number.isFinite(tenureMonths) || tenureMonths < 1)
+    return { error: "Total EMIs must be at least 1." };
+
+  const emisPaid = Math.max(0, Math.floor(Number(data.emisPaid) || 0));
+  if (emisPaid > tenureMonths)
+    return { error: "EMIs paid can't exceed the total number of EMIs." };
+
+  const dueDay = Math.floor(Number(data.dueDay));
+  if (!Number.isFinite(dueDay) || dueDay < 1 || dueDay > 31)
+    return { error: "Due day must be between 1 and 31." };
+
+  const principalRaw = round2(Number(data.principal));
+  const principal =
+    Number.isFinite(principalRaw) && principalRaw > 0
+      ? principalRaw
+      : round2(emiAmount * tenureMonths);
+
+  return {
+    value: {
+      name,
+      lender: data.lender?.trim() || undefined,
+      principal,
+      emiAmount,
+      interestRate:
+        data.interestRate != null && Number.isFinite(Number(data.interestRate))
+          ? Number(data.interestRate)
+          : undefined,
+      tenureMonths,
+      emisPaid,
+      dueDay,
+      notes: data.notes?.trim() || undefined,
+      startDate: data.startDate ? new Date(data.startDate) : undefined,
+    },
+  };
+}
+
+export async function createLoan(data: LoanInput) {
   const userObjectId = await ensureUserInDb();
   if (!userObjectId) return { success: false, error: "Unauthorized" };
+
+  const { value, error } = normalizeLoan(data);
+  if (error) return { success: false, error };
 
   try {
     await Loan.create({
       userId: userObjectId,
-      ...data,
-      emisPaid: data.emisPaid || 0,
-      startDate: data.startDate ? new Date(data.startDate) : new Date(),
+      ...value,
+      status: value.emisPaid >= value.tenureMonths ? "closed" : "active",
+      startDate: value.startDate || new Date(),
     });
     revalidatePath("/dashboard/loans");
     revalidatePath("/dashboard");
@@ -103,6 +160,40 @@ export async function createLoan(data: {
   } catch (error: any) {
     console.error("createLoan error:", error);
     return { success: false, error: error.message || "Failed to add loan." };
+  }
+}
+
+/** Edit an existing loan's details (fix a typo, revise EMI count, etc.). */
+export async function updateLoan(id: string, data: LoanInput) {
+  const userObjectId = await ensureUserInDb();
+  if (!userObjectId) return { success: false, error: "Unauthorized" };
+
+  const { value, error } = normalizeLoan(data);
+  if (error) return { success: false, error };
+
+  try {
+    const loan = await Loan.findOne({ _id: id, userId: userObjectId });
+    if (!loan) return { success: false, error: "Loan not found." };
+
+    loan.name = value.name;
+    loan.lender = value.lender;
+    loan.principal = value.principal;
+    loan.emiAmount = value.emiAmount;
+    loan.interestRate = value.interestRate;
+    loan.tenureMonths = value.tenureMonths;
+    loan.emisPaid = value.emisPaid;
+    loan.dueDay = value.dueDay;
+    loan.notes = value.notes;
+    if (value.startDate) loan.startDate = value.startDate;
+    loan.status = value.emisPaid >= value.tenureMonths ? "closed" : "active";
+    await loan.save();
+
+    revalidatePath("/dashboard/loans");
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (error: any) {
+    console.error("updateLoan error:", error);
+    return { success: false, error: error.message || "Failed to update loan." };
   }
 }
 

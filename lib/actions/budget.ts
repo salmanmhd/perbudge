@@ -6,7 +6,7 @@ import connectToDatabase from "@/lib/db";
 import { ensureUserInDb } from "@/lib/actions/dashboard-data";
 import User from "@/lib/models/user";
 import Transaction from "@/lib/models/transaction";
-import { bucketForCategory, type BudgetBucket } from "@/lib/finance";
+import { bucketForCategory, round2, type BudgetBucket } from "@/lib/finance";
 import type { ICategoryBudget, BudgetMethod } from "@/lib/models/user";
 
 export interface CategoryBudgetView {
@@ -33,6 +33,11 @@ export interface BudgetPlan {
   totalBudgeted: number;
   /** income - totalSpent, i.e. what's left to save this month */
   projectedSavings: number;
+  /** Day of month so far (1-based) and total days in this month. */
+  daysElapsed: number;
+  daysInMonth: number;
+  /** Spend extrapolated to month-end at the current daily pace. */
+  projectedMonthEndSpend: number;
 }
 
 async function monthCategorySpend(userObjectId: any): Promise<Record<string, number>> {
@@ -56,6 +61,9 @@ async function monthCategorySpend(userObjectId: any): Promise<Record<string, num
 export async function getBudgetPlan(): Promise<BudgetPlan> {
   const userObjectId = await ensureUserInDb();
   const { userId } = await auth();
+  const now = new Date();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const daysElapsed = now.getDate();
   const empty: BudgetPlan = {
     monthlyIncome: 0,
     budgetMethod: "50-30-20",
@@ -65,6 +73,9 @@ export async function getBudgetPlan(): Promise<BudgetPlan> {
     totalSpent: 0,
     totalBudgeted: 0,
     projectedSavings: 0,
+    daysElapsed,
+    daysInMonth,
+    projectedMonthEndSpend: 0,
   };
   if (!userObjectId || !userId) return empty;
 
@@ -97,6 +108,8 @@ export async function getBudgetPlan(): Promise<BudgetPlan> {
 
   const totalSpent = Object.values(spendByCategory).reduce((a, b) => a + b, 0);
   const totalBudgeted = categoryBudgets.reduce((a, b) => a + b.limit, 0);
+  const projectedMonthEndSpend =
+    daysElapsed > 0 ? Math.round((totalSpent / daysElapsed) * daysInMonth) : totalSpent;
 
   return {
     monthlyIncome: income,
@@ -108,6 +121,9 @@ export async function getBudgetPlan(): Promise<BudgetPlan> {
     totalSpent,
     totalBudgeted,
     projectedSavings: income - totalSpent,
+    daysElapsed,
+    daysInMonth,
+    projectedMonthEndSpend,
   };
 }
 
@@ -123,11 +139,15 @@ export async function updateBudgetPlan(data: {
 
   await connectToDatabase();
   const update: any = {};
-  if (data.monthlyIncome !== undefined) update.monthlyIncome = data.monthlyIncome;
+  if (data.monthlyIncome !== undefined) update.monthlyIncome = round2(Number(data.monthlyIncome) || 0);
   if (data.budgetMethod !== undefined) update.budgetMethod = data.budgetMethod;
   if (data.savingsTargetPct !== undefined) update.savingsTargetPct = data.savingsTargetPct;
   if (data.financialGoals !== undefined) update.financialGoals = data.financialGoals;
-  if (data.categoryBudgets !== undefined) update.categoryBudgets = data.categoryBudgets;
+  if (data.categoryBudgets !== undefined)
+    update.categoryBudgets = data.categoryBudgets.map((cb) => ({
+      category: cb.category,
+      limit: round2(Number(cb.limit) || 0),
+    }));
 
   await User.updateOne({ clerkId: userId }, { $set: update });
   revalidatePath("/dashboard/budget");

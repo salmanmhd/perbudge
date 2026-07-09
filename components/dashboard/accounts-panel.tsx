@@ -12,7 +12,7 @@ import {
   type AccountView,
 } from "@/lib/actions/accounts";
 import type { AccountType } from "@/lib/models/account";
-import { formatINR, daysUntil } from "@/lib/finance";
+import { formatINR, daysUntil, sanitizeAmountInput } from "@/lib/finance";
 import {
   Plus,
   CreditCard,
@@ -313,7 +313,7 @@ function AddAccountButton({ onDone }: { onDone: () => void }) {
                     inputMode="numeric"
                     value={creditLimit}
                     onChange={(e) =>
-                      setCreditLimit(e.target.value.replace(/[^0-9]/g, ""))
+                      setCreditLimit(sanitizeAmountInput(e.target.value))
                     }
                     placeholder="200000"
                     className="h-11 font-mono"

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { ensureUserInDb } from "@/lib/actions/dashboard-data";
 import Ledger from "@/lib/models/ledger";
-import { ledgerOutstanding } from "@/lib/finance";
+import { ledgerOutstanding, round2 } from "@/lib/finance";
 import type {
   LedgerKind,
   LedgerDirection,
@@ -94,7 +94,7 @@ export async function createLedgerEntry(data: {
       kind: data.kind,
       direction: data.direction,
       counterpartyName: data.counterpartyName,
-      amount: data.amount,
+      amount: round2(Number(data.amount)),
       settledAmount: 0,
       description: data.description,
       date: data.date ? new Date(data.date) : new Date(),

@@ -5,7 +5,7 @@ import { ensureUserInDb } from "@/lib/actions/dashboard-data";
 import Account from "@/lib/models/account";
 import Transaction from "@/lib/models/transaction";
 import type { AccountType } from "@/lib/models/account";
-import { nextDueDate } from "@/lib/finance";
+import { nextDueDate, round2 } from "@/lib/finance";
 
 export interface AccountView {
   _id: string;
@@ -117,7 +117,7 @@ export async function createAccount(data: {
       userId: userObjectId,
       name: data.name,
       type: data.type,
-      creditLimit: data.creditLimit,
+      creditLimit: data.creditLimit != null ? round2(Number(data.creditLimit)) : undefined,
       billingCycleDay: data.billingCycleDay,
       dueDay: data.dueDay,
       last4: data.last4,
