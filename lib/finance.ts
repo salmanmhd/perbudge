@@ -102,6 +102,74 @@ export function loanProgressPct(loan: LoanLike): number {
   return Math.min(100, Math.round((loan.emisPaid / loan.tenureMonths) * 100));
 }
 
+/* ── Payoff trajectory ───────────────────────────────────────── */
+
+export interface TrajectoryPoint {
+  /** e.g. "Jul '26" */
+  label: string;
+  /** Total outstanding across all loans at the start of this month. */
+  outstanding: number;
+  /** EMI outflow due during this month (steps down as loans close). */
+  outflow: number;
+}
+
+export interface LoanTrajectory {
+  points: TrajectoryPoint[];
+  /** Month of the final payment across all loans. */
+  debtFreeLabel: string | null;
+  monthsToDebtFree: number;
+  totalOutstanding: number;
+  currentMonthlyOutflow: number;
+  /** When each loan closes and the monthly EMI it frees up. Soonest first. */
+  freedEvents: { name: string; label: string; emiFreed: number }[];
+}
+
+/**
+ * Project the month-by-month payoff of a set of loans, assuming one EMI paid
+ * per month. Outstanding uses the same schedule model as loanOutstanding
+ * (remaining EMIs × amount), so the trajectory ends exactly at ₹0.
+ */
+export function loanPayoffTrajectory(
+  loans: { name: string; emiAmount: number; remainingEmis: number }[],
+  from: Date = new Date()
+): LoanTrajectory {
+  const active = loans.filter((l) => l.remainingEmis > 0 && l.emiAmount > 0);
+  const maxMonths = active.reduce((m, l) => Math.max(m, l.remainingEmis), 0);
+
+  const monthLabel = (offset: number) => {
+    const d = new Date(from.getFullYear(), from.getMonth() + offset, 1);
+    return new Intl.DateTimeFormat("en-IN", { month: "short", year: "2-digit" })
+      .format(d)
+      .replace(/ (\d)/, " '$1");
+  };
+
+  const points: TrajectoryPoint[] = [];
+  for (let m = 0; m <= maxMonths; m++) {
+    let outstanding = 0;
+    let outflow = 0;
+    for (const l of active) {
+      const left = Math.max(0, l.remainingEmis - m);
+      outstanding += left * l.emiAmount;
+      if (left > 0) outflow += l.emiAmount;
+    }
+    points.push({ label: monthLabel(m), outstanding: round2(outstanding), outflow: round2(outflow) });
+  }
+
+  const freedEvents = active
+    .map((l) => ({ name: l.name, order: l.remainingEmis, emiFreed: l.emiAmount, label: monthLabel(l.remainingEmis - 1) }))
+    .sort((a, b) => a.order - b.order)
+    .map(({ name, label, emiFreed }) => ({ name, label, emiFreed }));
+
+  return {
+    points,
+    debtFreeLabel: maxMonths > 0 ? monthLabel(maxMonths - 1) : null,
+    monthsToDebtFree: maxMonths,
+    totalOutstanding: points[0]?.outstanding ?? 0,
+    currentMonthlyOutflow: points[0]?.outflow ?? 0,
+    freedEvents,
+  };
+}
+
 /* ── Credit-card / due-date helpers ──────────────────────────── */
 
 /**

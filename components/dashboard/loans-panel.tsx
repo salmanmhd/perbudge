@@ -13,7 +13,8 @@ import {
   deleteLoan,
   type LoanView,
 } from "@/lib/actions/loans";
-import { formatINR, daysUntil, sanitizeAmountInput, sanitizeIntInput } from "@/lib/finance";
+import { formatINR, daysUntil, sanitizeAmountInput, sanitizeIntInput, type LoanTrajectory } from "@/lib/finance";
+import { LoanTrajectoryChart } from "@/components/dashboard/loan-trajectory";
 import {
   Plus,
   Loader2,
@@ -27,9 +28,11 @@ import {
 export function LoansPanel({
   loans,
   monthlyTotal,
+  trajectory,
 }: {
   loans: LoanView[];
   monthlyTotal: number;
+  trajectory: LoanTrajectory;
 }) {
   const router = useRouter();
   const active = loans.filter((l) => l.status === "active");
@@ -62,6 +65,9 @@ export function LoansPanel({
           />
         </div>
       )}
+
+      {/* Payoff trajectory — how the debt melts month by month */}
+      {active.length > 0 && <LoanTrajectoryChart trajectory={trajectory} />}
 
       {loans.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border/60 p-10 text-center">
