@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@clerk/nextjs/server";
 import connectToDatabase from "@/lib/db";
 import { ensureUserInDb } from "@/lib/actions/dashboard-data";
+import { getMonthlyEmiTotal } from "@/lib/actions/loans";
 import User from "@/lib/models/user";
 import Transaction from "@/lib/models/transaction";
 import { bucketForCategory, round2, type BudgetBucket } from "@/lib/finance";
@@ -38,6 +39,15 @@ export interface BudgetPlan {
   daysInMonth: number;
   /** Spend extrapolated to month-end at the current daily pace. */
   projectedMonthEndSpend: number;
+  /** ── Money-flow ── */
+  /** Fixed monthly EMI outflow, pulled from active loans. */
+  monthlyEmiTotal: number;
+  /** income × savingsTargetPct, the amount to set aside. */
+  savingsTargetAmount: number;
+  /** income − EMIs − savings target = what's free for everyday spending. */
+  discretionaryBudget: number;
+  /** discretionaryBudget − everyday spend so far (can go negative). */
+  safeToSpendLeft: number;
 }
 
 async function monthCategorySpend(userObjectId: any): Promise<Record<string, number>> {
@@ -76,11 +86,18 @@ export async function getBudgetPlan(): Promise<BudgetPlan> {
     daysElapsed,
     daysInMonth,
     projectedMonthEndSpend: 0,
+    monthlyEmiTotal: 0,
+    savingsTargetAmount: 0,
+    discretionaryBudget: 0,
+    safeToSpendLeft: 0,
   };
   if (!userObjectId || !userId) return empty;
 
-  const user: any = await User.findOne({ clerkId: userId }).lean();
-  const spendByCategory = await monthCategorySpend(userObjectId);
+  const [user, spendByCategory, monthlyEmiTotal] = await Promise.all([
+    User.findOne({ clerkId: userId }).lean() as Promise<any>,
+    monthCategorySpend(userObjectId),
+    getMonthlyEmiTotal(),
+  ]);
 
   const income = user?.monthlyIncome || 0;
   const method: BudgetMethod = user?.budgetMethod || "50-30-20";
@@ -100,8 +117,10 @@ export async function getBudgetPlan(): Promise<BudgetPlan> {
     bucketSpend[bucketForCategory(cat)] += amt;
   }
 
+  // EMIs are a "need" the user committed to — fold them into the needs bucket
+  // so the 50/30/20 view reflects real fixed obligations, not just logged spend.
   const buckets: BucketView[] = [
-    { bucket: "needs", targetPct: 50, targetAmount: income * 0.5, spent: bucketSpend.needs },
+    { bucket: "needs", targetPct: 50, targetAmount: income * 0.5, spent: bucketSpend.needs + monthlyEmiTotal },
     { bucket: "wants", targetPct: 30, targetAmount: income * 0.3, spent: bucketSpend.wants },
     { bucket: "savings", targetPct: 20, targetAmount: income * 0.2, spent: 0 },
   ];
@@ -110,6 +129,10 @@ export async function getBudgetPlan(): Promise<BudgetPlan> {
   const totalBudgeted = categoryBudgets.reduce((a, b) => a + b.limit, 0);
   const projectedMonthEndSpend =
     daysElapsed > 0 ? Math.round((totalSpent / daysElapsed) * daysInMonth) : totalSpent;
+
+  const savingsTargetAmount = round2((income * savingsTargetPct) / 100);
+  const discretionaryBudget = Math.max(0, income - monthlyEmiTotal - savingsTargetAmount);
+  const safeToSpendLeft = round2(discretionaryBudget - totalSpent);
 
   return {
     monthlyIncome: income,
@@ -124,6 +147,10 @@ export async function getBudgetPlan(): Promise<BudgetPlan> {
     daysElapsed,
     daysInMonth,
     projectedMonthEndSpend,
+    monthlyEmiTotal,
+    savingsTargetAmount,
+    discretionaryBudget,
+    safeToSpendLeft,
   };
 }
 

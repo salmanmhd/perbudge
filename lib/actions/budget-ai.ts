@@ -3,6 +3,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { getBudgetPlan } from "@/lib/actions/budget";
 import { formatINR } from "@/lib/finance";
+import { aiErrorMessage } from "@/lib/ai/errors";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const MODEL = "gemini-2.5-flash";
@@ -116,6 +117,6 @@ ${lines.join("\n")}`,
     return { success: true, onTrack, tips };
   } catch (error: any) {
     console.error("getBudgetCoaching error:", error);
-    return { success: false, onTrack, tips: [], error: "Could not generate coaching right now." };
+    return { success: false, onTrack, tips: [], error: aiErrorMessage(error, "Could not generate coaching right now.") };
   }
 }

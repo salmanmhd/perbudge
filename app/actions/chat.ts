@@ -3,6 +3,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { buildAiContext } from "@/lib/actions/finance-snapshot";
 import { generateDigestFromContext } from "@/lib/ai/digest";
+import { aiErrorMessage } from "@/lib/ai/errors";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const MODEL = "gemini-2.5-flash";
@@ -47,7 +48,7 @@ Rules:
     return { success: true, text: response.text };
   } catch (error) {
     console.error("Chat error:", error);
-    return { success: false, text: "Sorry, I hit an error processing your query." };
+    return { success: false, text: aiErrorMessage(error, "Sorry, I hit an error processing your query.") };
   }
 }
 
@@ -107,6 +108,6 @@ ${context}`,
     return { success: true, issues };
   } catch (error: any) {
     console.error("analyzeFinances error:", error);
-    return { success: false, issues: [], error: "Could not analyse finances right now." };
+    return { success: false, issues: [], error: aiErrorMessage(error, "Could not analyse finances right now.") };
   }
 }

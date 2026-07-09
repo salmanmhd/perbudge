@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { ensureUserInDb } from "@/lib/actions/dashboard-data";
 import Loan from "@/lib/models/loan";
-import Transaction from "@/lib/models/transaction";
 import {
   loanOutstanding,
   loanRemainingEmis,
@@ -198,10 +197,12 @@ export async function updateLoan(id: string, data: LoanInput) {
 }
 
 /**
- * Record one EMI as paid: increments emisPaid, optionally logs a matching
- * expense transaction, and auto-closes the loan when fully paid.
+ * Record one EMI as paid: increments emisPaid and auto-closes the loan when
+ * fully paid. Does NOT log an expense transaction — EMIs are already counted
+ * as a fixed monthly commitment in the budget (money-flow), so logging one here
+ * would double-count it. The "Pay EMI" button only advances loan progress.
  */
-export async function payEmi(id: string, logTransaction = true) {
+export async function payEmi(id: string) {
   const userObjectId = await ensureUserInDb();
   if (!userObjectId) return { success: false, error: "Unauthorized" };
 
@@ -215,22 +216,8 @@ export async function payEmi(id: string, logTransaction = true) {
   if (loan.emisPaid >= loan.tenureMonths) loan.status = "closed";
   await loan.save();
 
-  if (logTransaction) {
-    await Transaction.create({
-      userId: userObjectId,
-      amount: loan.emiAmount,
-      category: loan.category || "bills",
-      type: "expense",
-      paymentMode: "cash",
-      note: `EMI: ${loan.name}`,
-      isRecurring: true,
-      date: new Date(),
-    });
-  }
-
   revalidatePath("/dashboard/loans");
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/transactions");
   return { success: true };
 }
 

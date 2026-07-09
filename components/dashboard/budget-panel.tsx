@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,10 +12,19 @@ import { CATEGORIES } from "@/lib/categories";
 import { CategoryIcon } from "@/components/category-icon";
 import { formatINR, sanitizeAmountInput } from "@/lib/finance";
 import { BudgetCoach } from "@/components/dashboard/budget-coach";
-import { Loader2, Pencil, Target, PiggyBank, Sparkles, Gauge } from "lucide-react";
+import {
+  Loader2,
+  Pencil,
+  Target,
+  PiggyBank,
+  Sparkles,
+  Gauge,
+  ArrowRight,
+  Banknote,
+} from "lucide-react";
 
 const BUCKET_META = {
-  needs: { label: "Needs", hint: "Rent, food, bills, transport, health", color: "bg-primary" },
+  needs: { label: "Needs", hint: "EMIs, rent, food, bills, transport", color: "bg-primary" },
   wants: { label: "Wants", hint: "Shopping, entertainment, extras", color: "bg-amber-500" },
   savings: { label: "Savings", hint: "What stays with you", color: "bg-emerald-500" },
 } as const;
@@ -55,22 +65,8 @@ export function BudgetPanel({ plan }: { plan: BudgetPlan }) {
         </div>
       ) : (
         <>
-          {/* Income + projected savings */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <SummaryStat label="Monthly income" value={formatINR(plan.monthlyIncome)} />
-            <SummaryStat label="Spent so far" value={formatINR(plan.totalSpent)} />
-            <SummaryStat
-              label="Projected savings"
-              value={formatINR(plan.projectedSavings)}
-              tone={plan.projectedSavings >= 0 ? "good" : "bad"}
-            />
-            <SummaryStat
-              label="Savings rate"
-              value={`${savingsRate}%`}
-              tone={savingsRate >= plan.savingsTargetPct ? "good" : "warn"}
-              sub={`target ${plan.savingsTargetPct}%`}
-            />
-          </div>
+          {/* Money flow — the centrepiece */}
+          <MoneyFlow plan={plan} savingsRate={savingsRate} />
 
           {/* Pace projection */}
           <PaceCard plan={plan} />
@@ -201,6 +197,144 @@ export function BudgetPanel({ plan }: { plan: BudgetPlan }) {
   );
 }
 
+function MoneyFlow({ plan, savingsRate }: { plan: BudgetPlan; savingsRate: number }) {
+  const income = plan.monthlyIncome;
+  const emi = plan.monthlyEmiTotal;
+  const savings = plan.savingsTargetAmount;
+  const disc = plan.discretionaryBudget;
+  const spent = plan.totalSpent;
+  const safe = plan.safeToSpendLeft;
+  const safePositive = safe >= 0;
+
+  const pct = (n: number) => (income > 0 ? Math.max(0, (n / income) * 100) : 0);
+  const emiPct = pct(emi);
+  const savePct = pct(savings);
+  const discPct = Math.max(0, 100 - emiPct - savePct);
+
+  return (
+    <div className="rounded-2xl border border-border/60 p-5 space-y-5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Banknote className="h-4 w-4 text-primary" />
+          <h2 className="font-semibold">Money flow · this month</h2>
+        </div>
+        <span className="text-xs text-muted-foreground">Savings rate {savingsRate}%</span>
+      </div>
+
+      {/* Safe to spend — the number that matters */}
+      <div>
+        <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
+          Safe to spend
+        </p>
+        <p
+          className={`text-3xl md:text-4xl font-bold font-mono tracking-tight ${
+            safePositive ? "text-emerald-600 dark:text-emerald-500" : "text-destructive"
+          }`}
+        >
+          {formatINR(safe)}
+        </p>
+        <p className="text-xs text-muted-foreground mt-1 max-w-md">
+          {safePositive ? (
+            <>
+              left for everyday spending this month — after EMIs and your{" "}
+              {formatINR(savings)} savings goal.
+            </>
+          ) : (
+            <>
+              you&apos;re {formatINR(Math.abs(safe))} past your everyday budget.
+              Ease up to protect your savings goal.
+            </>
+          )}
+        </p>
+      </div>
+
+      {/* Allocation bar: how income is committed */}
+      <div className="space-y-2">
+        <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted">
+          <div className="bg-amber-500" style={{ width: `${emiPct}%` }} />
+          <div className="bg-emerald-500" style={{ width: `${savePct}%` }} />
+          <div className="bg-primary/40" style={{ width: `${discPct}%` }} />
+        </div>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+          <Legend color="bg-amber-500" label={`EMIs ${formatINR(emi)}`} />
+          <Legend color="bg-emerald-500" label={`Savings ${formatINR(savings)}`} />
+          <Legend color="bg-primary/40" label={`Everyday ${formatINR(disc)}`} />
+        </div>
+      </div>
+
+      {/* Waterfall */}
+      <div className="space-y-1.5 text-sm">
+        <FlowRow label="Income" value={income} strong />
+        <FlowRow label="Fixed EMIs" value={-emi} muted hint="from your loans" href="/dashboard/loans" />
+        <FlowRow label={`Savings goal (${plan.savingsTargetPct}%)`} value={-savings} muted />
+        <div className="border-t border-border/50 my-1.5" />
+        <FlowRow label="Everyday budget" value={disc} strong />
+        <FlowRow label="Spent so far" value={-spent} muted />
+        <div className="border-t border-border/50 my-1.5" />
+        <FlowRow label="Safe to spend" value={safe} strong tone={safePositive ? "good" : "bad"} />
+      </div>
+    </div>
+  );
+}
+
+function Legend({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className={`h-2 w-2 rounded-full ${color}`} />
+      {label}
+    </span>
+  );
+}
+
+function FlowRow({
+  label,
+  value,
+  strong,
+  muted,
+  tone,
+  href,
+  hint,
+}: {
+  label: string;
+  value: number;
+  strong?: boolean;
+  muted?: boolean;
+  tone?: "good" | "bad";
+  href?: string;
+  hint?: string;
+}) {
+  const toneClass =
+    tone === "good"
+      ? "text-emerald-600 dark:text-emerald-500"
+      : tone === "bad"
+      ? "text-destructive"
+      : "";
+  const inner = (
+    <div className="flex items-center justify-between gap-3">
+      <span
+        className={`inline-flex items-center gap-1.5 ${muted ? "text-muted-foreground" : ""} ${
+          strong ? "font-semibold" : ""
+        }`}
+      >
+        {label}
+        {hint && <span className="text-[11px] text-muted-foreground">· {hint}</span>}
+        {href && <ArrowRight className="h-3 w-3 text-muted-foreground" />}
+      </span>
+      <span className={`font-mono ${strong ? "font-bold" : ""} ${toneClass}`}>
+        {value < 0 ? "−" : ""}
+        {formatINR(Math.abs(value))}
+      </span>
+    </div>
+  );
+  return href ? (
+    <Link href={href} className="block hover:opacity-80 transition-opacity">
+      {inner}
+    </Link>
+  ) : (
+    inner
+  );
+}
+
 function PaceCard({ plan }: { plan: BudgetPlan }) {
   const projected = plan.projectedMonthEndSpend;
   const projectedSavings = plan.monthlyIncome - projected;
@@ -250,38 +384,6 @@ function PaceCard({ plan }: { plan: BudgetPlan }) {
           </>
         )}
       </p>
-    </div>
-  );
-}
-
-function SummaryStat({
-  label,
-  value,
-  sub,
-  tone,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  tone?: "good" | "bad" | "warn";
-}) {
-  const toneClass =
-    tone === "good"
-      ? "text-emerald-500"
-      : tone === "bad"
-      ? "text-destructive"
-      : tone === "warn"
-      ? "text-amber-500"
-      : "";
-  return (
-    <div className="rounded-2xl border border-border/60 bg-muted/30 p-4">
-      <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
-        {label}
-      </p>
-      <p className={`mt-1 text-lg font-bold font-mono tracking-tight ${toneClass}`}>
-        {value}
-      </p>
-      {sub && <p className="text-[11px] text-muted-foreground">{sub}</p>}
     </div>
   );
 }
