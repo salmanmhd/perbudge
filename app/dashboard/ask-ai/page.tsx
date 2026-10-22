@@ -1,29 +1,35 @@
 import { AiChat } from "@/components/dashboard/ai-chat";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare } from "lucide-react";
+import { Sparkles, ShieldCheck } from "lucide-react";
 
 export default function AskAIPage() {
   return (
-    <div className="flex flex-col p-4 pt-8 md:p-10 max-w-[1200px] mx-auto min-h-[calc(100vh-4rem)]">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
-          <MessageSquare className="w-5 h-5 text-primary" />
+    <div className="flex flex-col h-[calc(100dvh-5.5rem)] md:h-[calc(100dvh-2rem)] max-w-5xl mx-auto w-full p-3 sm:p-5 md:p-6">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3.5 shrink-0">
+        <div className="space-y-0.5">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+              Ask AI Co-pilot
+            </h1>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-primary/10 text-primary border border-primary/20">
+              <Sparkles className="w-3 h-3" /> Live Context
+            </span>
+          </div>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Trained on your real spending, budgets, EMIs, and monthly take-home income.
+          </p>
         </div>
-        <h2 className="text-3xl font-bold tracking-tight">Ask AI</h2>
-      </div>
-      
-      <p className="text-muted-foreground mb-6">
-        Chat with your personal finance assistant. It understands your expenses and can answer questions like "How much did I spend on food this month?" or "Can I afford a new laptop?"
-      </p>
 
-      <Card className="translucent-surface border-0 flex-1 flex flex-col h-full min-h-[600px]">
-        <CardHeader>
-          <CardTitle>Chat Assistant</CardTitle>
-        </CardHeader>
-        <CardContent className="flex-1 flex flex-col p-0">
-          <AiChat />
-        </CardContent>
-      </Card>
+        <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/40 px-2.5 py-1 rounded-lg border border-border/40">
+          <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+          <span>Private & securely scoped</span>
+        </div>
+      </div>
+
+      {/* Main Full-Height Chat Interface */}
+      <div className="flex-1 min-h-0 w-full flex flex-col">
+        <AiChat />
+      </div>
     </div>
   );
 }

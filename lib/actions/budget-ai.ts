@@ -4,9 +4,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { getBudgetPlan } from "@/lib/actions/budget";
 import { formatINR } from "@/lib/finance";
 import { aiErrorMessage } from "@/lib/ai/errors";
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-const MODEL = "gemini-2.5-flash";
+import { generateWithModelFallback } from "@/lib/ai-audit";
 
 export type CoachTone = "good" | "watch" | "urgent";
 
@@ -84,9 +82,8 @@ export async function getBudgetCoaching(): Promise<BudgetCoaching> {
   }
 
   try {
-    const response = await ai.models.generateContent({
-      model: MODEL,
-      contents: `You are Perbudge's budget coach for an Indian household. Your ONLY job is to help them finish THIS month within their plan. Study the numbers and give 3–5 specific, doable tips. Prioritise categories/buckets that are pacing over their limit. When on track, reinforce it and suggest how to lock in the surplus. Ground every tip in their actual numbers. Be concrete about rupee amounts and days remaining — no generic advice.
+    const result = await generateWithModelFallback(
+      `You are Perbudge's budget coach for an Indian household. Your ONLY job is to help them finish THIS month within their plan. Study the numbers and give 3–5 specific, doable tips. Prioritise categories/buckets that are pacing over their limit. When on track, reinforce it and suggest how to lock in the surplus. Ground every tip in their actual numbers. Be concrete about rupee amounts and days remaining — no generic advice.
 
 Severity guide:
 - "urgent": on pace to overspend a limit/income, or already over.
@@ -94,26 +91,28 @@ Severity guide:
 - "good": comfortably within plan — reinforce and channel the surplus.
 
 ${lines.join("\n")}`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              title: { type: Type.STRING, description: "Short headline, 3–6 words." },
-              tone: { type: Type.STRING, enum: ["good", "watch", "urgent"] },
-              detail: { type: Type.STRING, description: "1–2 sentences with real numbers." },
-              action: { type: Type.STRING, description: "One concrete move for the rest of the month." },
+      {
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                title: { type: Type.STRING, description: "Short headline, 3–6 words." },
+                tone: { type: Type.STRING, enum: ["good", "watch", "urgent"] },
+                detail: { type: Type.STRING, description: "1–2 sentences with real numbers." },
+                action: { type: Type.STRING, description: "One concrete move for the rest of the month." },
+              },
+              required: ["title", "tone", "detail", "action"],
             },
-            required: ["title", "tone", "detail", "action"],
           },
         },
-      },
-    });
+      }
+    );
 
-    if (!response.text) return { success: false, onTrack, tips: [], error: "No response" };
-    const tips = JSON.parse(response.text) as BudgetTip[];
+    if (!result.success || !result.text) return { success: false, onTrack, tips: [], error: result.error || "No response" };
+    const tips = JSON.parse(result.text) as BudgetTip[];
     return { success: true, onTrack, tips };
   } catch (error: any) {
     console.error("getBudgetCoaching error:", error);
