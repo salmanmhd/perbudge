@@ -23,6 +23,7 @@ import {
 import { Reveal } from "@/components/landing/reveal";
 import { CountUp } from "@/components/landing/count-up";
 import { TypingDemo } from "@/components/landing/typing-demo";
+import { TelegramShowcase } from "@/components/landing/telegram-showcase";
 
 export function Landing() {
   return (
@@ -38,8 +39,12 @@ export function Landing() {
               Perbudge
             </span>
           </Link>
-          <nav className="hidden items-center gap-8 text-sm font-medium text-zinc-600 md:flex">
+          <nav className="hidden items-center gap-7 text-sm font-medium text-zinc-600 md:flex">
             <a href="#how" className="transition-colors hover:text-zinc-900">How it works</a>
+            <a href="#telegram" className="transition-colors hover:text-sky-700 flex items-center gap-1.5 font-semibold text-zinc-800">
+              <span className="flex h-2 w-2 rounded-full bg-sky-500 animate-pulse" />
+              Telegram Bot
+            </a>
             <a href="#everything" className="transition-colors hover:text-zinc-900">What it tracks</a>
             <a href="#ai" className="transition-colors hover:text-zinc-900">The AI</a>
           </nav>
@@ -80,7 +85,7 @@ export function Landing() {
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-70" />
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
                 </span>
-                AI money co-pilot · made for India
+                AI money co-pilot · made for India · Telegram bot enabled
               </p>
 
               <h1 className="mt-6 text-[clamp(2.75rem,7vw,5rem)] font-semibold leading-[0.98] tracking-[-0.04em] text-zinc-900">
@@ -109,7 +114,7 @@ export function Landing() {
               </h1>
 
               <p className="mt-7 max-w-md text-lg leading-relaxed text-zinc-600">
-                Log an expense in a sentence. Track cards, EMIs, and who owes whom.
+                Log an expense in a sentence — on web or via Telegram bot. Track cards, EMIs, and who owes whom.
                 And get guidance that reads your real numbers — not another
                 spreadsheet to babysit.
               </p>
@@ -126,10 +131,11 @@ export function Landing() {
                   <span className="pointer-events-none absolute inset-y-0 left-0 z-0 w-1/4 bg-white/30 opacity-0 blur-md group-hover:opacity-100 group-hover:[animation:kh-sheen_0.9s_ease-out]" />
                 </Link>
                 <a
-                  href="#how"
-                  className="inline-flex h-12 items-center justify-center rounded-full border border-emerald-950/10 bg-white/50 px-6 text-base font-medium text-zinc-700 backdrop-blur-sm transition-colors hover:bg-white"
+                  href="#telegram"
+                  className="inline-flex h-12 items-center justify-center rounded-full border border-sky-600/20 bg-sky-50/70 px-6 text-base font-medium text-sky-900 backdrop-blur-sm transition-colors hover:bg-sky-100/70 gap-2"
                 >
-                  See how it works
+                  <span>Telegram bot</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-sky-200/70 text-sky-800 font-semibold">New</span>
                 </a>
               </div>
 
@@ -161,8 +167,9 @@ export function Landing() {
 
           {/* stats bar */}
           <div className="relative z-10 mx-auto max-w-6xl px-5 pb-16 sm:px-8">
-            <div className="grid grid-cols-2 gap-3 rounded-2xl border border-emerald-950/8 bg-white/60 p-2 backdrop-blur-sm sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 rounded-2xl border border-emerald-950/8 bg-white/60 p-2 backdrop-blur-sm sm:grid-cols-5">
               <Stat value={<CountUp value={3} suffix="s" />} label="to log an expense" />
+              <Stat value="@perbudge_bot" label="text via Telegram" />
               <Stat value={<CountUp value={6} />} label="money types tracked" />
               <Stat value="50/30/20" label="budgeting, built in" />
               <Stat value="Mon 9am" label="AI report in your inbox" />
@@ -194,6 +201,9 @@ export function Landing() {
             </MoveRow>
           </div>
         </section>
+
+        {/* ── Telegram Bot Showcase ── */}
+        <TelegramShowcase />
 
         {/* ── Everything (dark bento) ── */}
         <section id="everything" className="relative isolate scroll-mt-20 overflow-hidden bg-[#04241b] py-24 text-white sm:py-32">
