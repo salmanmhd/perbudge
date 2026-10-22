@@ -5,6 +5,7 @@ import User from "@/lib/models/user";
 import Transaction from "@/lib/models/transaction";
 import { parseExpenseMessage } from "@/lib/telegram-parser";
 import { CATEGORIES, getCategoryByName } from "@/lib/categories";
+import { auditFinancialsWithAi } from "@/lib/ai-audit";
 import {
   sendTelegramMessage,
   editTelegramMessageText,
@@ -285,30 +286,35 @@ export async function POST(req: NextRequest) {
     }
 
     // -------------------------------------------------------------------------
-    // Flow B: Utility Commands (/help, /today, /month)
+    // Flow B: Utility Commands (/help, /today, /last, /analysis, /month)
     // -------------------------------------------------------------------------
-    if (text === "/help") {
+    const command = text.split(/\s+/)[0].toLowerCase().replace(/@\w+$/, "");
+
+    if (command === "/help") {
       const helpText =
-        `💡 *Perbudge Telegram Bot Help*\n\n` +
-        `Log expenses simply by texting shorthand messages:\n` +
-        `• \`250 biryani\`\n` +
-        `• \`150 coffee #food\`\n` +
-        `• \`500 petrol #travel yest\`\n` +
-        `• \`1200 wifi #bills 18/10\`\n\n` +
+        `💡 *Perbudge Telegram Bot Guide*\n\n` +
+        `*How to Log Expenses:*\n` +
+        `Send a quick message anytime:\n` +
+        `• \`250 biryani\` — quick expense\n` +
+        `• \`150 coffee #food\` — specify category\n` +
+        `• \`500 petrol yest\` — backdate to yesterday\n` +
+        `• \`1200 wifi #bills 18/10\` — backdate to Oct 18\n\n` +
         `*Commands:*\n` +
-        `• /today — Today's total expenses\n` +
-        `• /month — This month's total expenses\n` +
+        `• /today — Today's total spending & items\n` +
+        `• /last — View your last 5 logged expenses\n` +
+        `• /analysis — Monthly breakdown & top categories\n` +
+        `• /month — Quick total spend for this month\n` +
         `• /help — Show this help message\n\n` +
         `*Shortcuts:*\n` +
-        `• \`#category\` — Specify category (#food, #bills, #travel)\n` +
-        `• \`yest\` / \`yesterday\` — Backdate to yesterday\n` +
-        `• \`DD/MM\` — Set specific date (e.g., \`18/10\`)`;
+        `• \`#<category>\` — Category tag (#food, #bills, #travel, etc.)\n` +
+        `• \`yest\` or \`yesterday\` — Backdate 1 day\n` +
+        `• \`DD/MM\` — Set specific date (e.g. \`18/10\`)`;
 
       await sendTelegramMessage(chatId, helpText, { parse_mode: "Markdown" });
       return NextResponse.json({ ok: true });
     }
 
-    if (text === "/today") {
+    if (command === "/today") {
       const now = new Date();
       const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
       const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
@@ -317,21 +323,139 @@ export async function POST(req: NextRequest) {
         userId: user._id,
         type: "expense",
         date: { $gte: startOfDay, $lte: endOfDay },
-      });
+      }).sort({ date: -1, createdAt: -1 });
 
       const total = expenses.reduce((sum, tx) => sum + (tx.amount || 0), 0);
       const count = expenses.length;
-      const countText = count === 1 ? "1 expense" : `${count} expenses`;
 
-      await sendTelegramMessage(
-        chatId,
-        `📅 *Today's Expenses*\nTotal: ₹${total.toLocaleString("en-IN")} (${countText})`,
-        { parse_mode: "Markdown" }
-      );
+      if (count === 0) {
+        await sendTelegramMessage(
+          chatId,
+          `📅 *Today's Expenses*\n\nYou haven't logged any expenses today yet. Send something like \`250 biryani\` to start!`,
+          { parse_mode: "Markdown" }
+        );
+        return NextResponse.json({ ok: true });
+      }
+
+      const countText = count === 1 ? "1 expense" : `${count} expenses`;
+      let reply = `📅 *Today's Expenses*\nTotal: *₹${total.toLocaleString("en-IN")}* (${countText})\n\n`;
+
+      expenses.slice(0, 5).forEach((tx) => {
+        reply += `• *₹${tx.amount.toLocaleString("en-IN")}* — ${tx.note || "Expense"} _(${getCategoryDisplay(tx.category)})_\n`;
+      });
+
+      if (count > 5) {
+        reply += `_...and ${count - 5} more_`;
+      }
+
+      await sendTelegramMessage(chatId, reply, { parse_mode: "Markdown" });
       return NextResponse.json({ ok: true });
     }
 
-    if (text === "/month") {
+    if (command === "/last") {
+      // Fetch the user's last 5 expenses sorted by createdAt in descending order
+      const lastExpenses = await Transaction.find({
+        userId: user._id,
+        type: "expense",
+      })
+        .sort({ createdAt: -1 })
+        .limit(5);
+
+      if (lastExpenses.length === 0) {
+        await sendTelegramMessage(
+          chatId,
+          "🕒 *Recent Expenses*\n\nYou haven't logged any expenses yet! Send something like `250 biryani` to get started.",
+          { parse_mode: "Markdown" }
+        );
+        return NextResponse.json({ ok: true });
+      }
+
+      let reply = "🕒 *Your Last 5 Expenses*\n\n";
+      lastExpenses.forEach((tx, idx) => {
+        const d = new Date(tx.date || tx.createdAt);
+        const formattedDate = d.toLocaleDateString("en-IN", {
+          day: "numeric",
+          month: "short",
+        });
+        const categoryLabel = getCategoryDisplay(tx.category);
+        reply += `${idx + 1}. *₹${tx.amount.toLocaleString("en-IN")}* — ${tx.note || "Expense"} • _${categoryLabel}_ (${formattedDate})\n`;
+      });
+
+      await sendTelegramMessage(chatId, reply, { parse_mode: "Markdown" });
+      return NextResponse.json({ ok: true });
+    }
+
+    if (command === "/analysis") {
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      const monthName = now.toLocaleString("en-IN", { month: "long", year: "numeric" });
+
+      const monthExpenses = await Transaction.find({
+        userId: user._id,
+        type: "expense",
+        date: { $gte: startOfMonth, $lte: endOfMonth },
+      });
+
+      if (monthExpenses.length === 0) {
+        await sendTelegramMessage(
+          chatId,
+          `📊 *Financial Breakdown — ${monthName}*\n\nNo expenses logged for this month yet. Start logging by sending an expense like \`250 biryani\`.`,
+          { parse_mode: "Markdown" }
+        );
+        return NextResponse.json({ ok: true });
+      }
+
+      const totalSpend = monthExpenses.reduce((sum, tx) => sum + (tx.amount || 0), 0);
+      const categoryTotals: Record<string, number> = {};
+
+      for (const tx of monthExpenses) {
+        const cat = tx.category || "others";
+        categoryTotals[cat] = (categoryTotals[cat] || 0) + (tx.amount || 0);
+      }
+
+      const sortedCategories = Object.entries(categoryTotals)
+        .map(([cat, amount]) => ({
+          category: cat,
+          label: getCategoryDisplay(cat),
+          amount,
+          percentage: totalSpend > 0 ? Math.round((amount / totalSpend) * 100) : 0,
+        }))
+        .sort((a, b) => b.amount - a.amount);
+
+      const topCategory = sortedCategories[0];
+
+      let reply = `📊 *Financial Breakdown — ${monthName}*\n\n`;
+      reply += `💰 *Total Spent:* ₹${totalSpend.toLocaleString("en-IN")} (${monthExpenses.length} ${monthExpenses.length === 1 ? "expense" : "expenses"})\n`;
+      reply += `🔥 *Top Category:* ${topCategory.label} (₹${topCategory.amount.toLocaleString("en-IN")} • ${topCategory.percentage}%)\n\n`;
+      reply += `*Category Breakdown:*\n`;
+
+      for (const cat of sortedCategories) {
+        reply += `• *${cat.label}*: ₹${cat.amount.toLocaleString("en-IN")} (${cat.percentage}%)\n`;
+      }
+
+      // Generate AI audit insight with robust model fallback (gemini-3.8-flash -> gemini-3.6-flash)
+      try {
+        const aiInsight = await auditFinancialsWithAi({
+          monthName,
+          totalSpend,
+          count: monthExpenses.length,
+          topCategory,
+          categoryBreakdown: sortedCategories,
+        });
+
+        if (aiInsight) {
+          reply += `\n🤖 *AI Co-pilot Insight:*\n_${aiInsight}_`;
+        }
+      } catch (aiErr) {
+        console.warn("AI audit failed gracefully:", aiErr);
+      }
+
+      await sendTelegramMessage(chatId, reply, { parse_mode: "Markdown" });
+      return NextResponse.json({ ok: true });
+    }
+
+    if (command === "/month") {
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
