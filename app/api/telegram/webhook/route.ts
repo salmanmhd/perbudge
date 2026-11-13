@@ -4,13 +4,15 @@ import connectToDatabase from "@/lib/db";
 import User from "@/lib/models/user";
 import Transaction from "@/lib/models/transaction";
 import { parseExpenseMessage } from "@/lib/telegram-parser";
-import { CATEGORIES, getCategoryByName } from "@/lib/categories";
+import { CATEGORIES, findCategory, categoriesForType, type Category } from "@/lib/categories";
+import { getCategoriesForUserId } from "@/lib/actions/categories";
 import { auditFinancialsWithAi } from "@/lib/ai-audit";
 import {
   sendTelegramMessage,
   editTelegramMessageText,
   answerCallbackQuery,
   InlineKeyboardMarkup,
+  editTelegramReplyMarkup,
 } from "@/lib/telegram";
 
 export const dynamic = "force-dynamic";
@@ -52,57 +54,118 @@ const CATEGORY_ALIASES: Record<string, string> = {
   flat: "rent",
 };
 
-function resolveCategory(nameOrId: string | null): string | null {
+function resolveCategory(nameOrId: string | null, list: Category[] = CATEGORIES): string | null {
   if (!nameOrId) return null;
   const normalized = nameOrId.trim().toLowerCase();
+  const compact = (v: string) => v.toLowerCase().replace(/[^a-z0-9]/g, "");
 
-  const directCategory = getCategoryByName(normalized);
-  if (directCategory) return directCategory.id;
+  const directCategory =
+    findCategory(list, normalized) ?? list.find((c) => compact(c.label) === compact(normalized));
+  if (directCategory) return directCategory.label;
 
-  if (CATEGORY_ALIASES[normalized]) {
-    return CATEGORY_ALIASES[normalized];
+  const alias = CATEGORY_ALIASES[normalized];
+  if (alias) {
+    return findCategory(list, alias)?.label ?? alias;
   }
 
   return null;
 }
 
-function getCategoryDisplay(catId: string): string {
-  const cat = getCategoryByName(catId);
+function getCategoryDisplay(catId: string, list: Category[] = CATEGORIES): string {
+  const cat = findCategory(list, catId);
   return cat ? cat.label : catId.charAt(0).toUpperCase() + catId.slice(1);
 }
 
-function buildCategoryPickerKeyboard(expenseId: string): InlineKeyboardMarkup {
-  return {
-    inline_keyboard: [
-      [
-        { text: "🍔 Food", callback_data: `cat:${expenseId}:food` },
-        { text: "🚗 Transport", callback_data: `cat:${expenseId}:transport` },
-        { text: "🧾 Bills", callback_data: `cat:${expenseId}:bills` },
-      ],
-      [
-        { text: "🛍️ Shopping", callback_data: `cat:${expenseId}:shopping` },
-        { text: "🎬 Fun", callback_data: `cat:${expenseId}:entertainment` },
-        { text: "💊 Health", callback_data: `cat:${expenseId}:health` },
-      ],
-      [
-        { text: "📚 Education", callback_data: `cat:${expenseId}:education` },
-        { text: "🏠 Rent", callback_data: `cat:${expenseId}:rent` },
-        { text: "📦 Others", callback_data: `cat:${expenseId}:others` },
-      ],
-      [{ text: "❌ Undo", callback_data: `del:${expenseId}` }],
-    ],
-  };
+function buildCategoryPickerKeyboard(
+  expenseId: string,
+  list: Category[] = CATEGORIES
+): InlineKeyboardMarkup {
+  // Telegram caps callback_data at 64 bytes.
+  const cats = categoriesForType(list, "expense").filter(
+    (c) => Buffer.byteLength(`cat:${expenseId}:${c.id}`) <= 64
+  );
+  const rows: InlineKeyboardMarkup["inline_keyboard"] = [];
+  for (let i = 0; i < cats.length; i += 3) {
+    rows.push(
+      cats.slice(i, i + 3).map((c) => ({ text: c.label, callback_data: `cat:${expenseId}:${c.id}` }))
+    );
+  }
+  rows.push([{ text: "❌ Undo", callback_data: `del:${expenseId}` }]);
+  return { inline_keyboard: rows };
 }
 
 function buildResolvedKeyboard(expenseId: string): InlineKeyboardMarkup {
   return {
     inline_keyboard: [
       [
-        { text: "🔄 Change Category", callback_data: `pick:${expenseId}` },
-        { text: "❌ Undo", callback_data: `del:${expenseId}` },
+        { text: "✏️ Category", callback_data: `pick:${expenseId}` },
+        { text: "↩️ Undo", callback_data: `del:${expenseId}` },
       ],
     ],
   };
+}
+
+function buildUndoOnlyKeyboard(expenseId: string): InlineKeyboardMarkup {
+  return { inline_keyboard: [[{ text: "↩️ Undo", callback_data: `del:${expenseId}` }]] };
+}
+
+/** Emoji shown in chat for each selectable category icon. */
+const ICON_EMOJI: Record<string, string> = {
+  Utensils: "🍽️", Pizza: "🍕", Coffee: "☕", ShoppingCart: "🛒", Car: "🚗", Bus: "🚌",
+  Train: "🚆", Bike: "🚲", Fuel: "⛽", Plane: "✈️", House: "🏠", Home: "🏠", Wrench: "🔧",
+  Hammer: "🔨", ReceiptText: "🧾", Zap: "⚡", Droplets: "💧", Wifi: "📶", Smartphone: "📱",
+  Gamepad2: "🎮", Gamepad: "🎮", Film: "🎬", Music: "🎵", Tv: "📺", ShoppingBag: "🛍️",
+  Shirt: "👕", Gift: "🎁", Scissors: "✂️", Sparkles: "✨", HeartPulse: "🩺", Pill: "💊",
+  Stethoscope: "🩺", Dumbbell: "🏋️", GraduationCap: "🎓", BookOpen: "📚", Laptop: "💻",
+  Baby: "🍼", PawPrint: "🐾", Users: "👥", Heart: "❤️", Church: "🛕", Banknote: "💵",
+  Briefcase: "💼", PiggyBank: "🐷", TrendingUp: "📈", Landmark: "🏦", CreditCard: "💳",
+  Wallet: "👛", HandCoins: "🪙", Receipt: "📦",
+};
+
+function categoryEmoji(name: string, list: Category[]): string {
+  const cat = findCategory(list, name);
+  return (cat && ICON_EMOJI[cat.icon]) || "📦";
+}
+
+const inr = (n: number) => `₹${n.toLocaleString("en-IN")}`;
+
+/** Sum of today's expenses (India time) for the running total. */
+async function todayExpenseTotal(userId: mongoose.Types.ObjectId): Promise<number> {
+  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+  const nowIst = new Date(Date.now() + IST_OFFSET_MS);
+  const startUtc = new Date(
+    Date.UTC(nowIst.getUTCFullYear(), nowIst.getUTCMonth(), nowIst.getUTCDate()) - IST_OFFSET_MS
+  );
+  const [agg] = await Transaction.aggregate([
+    { $match: { userId, type: "expense", date: { $gte: startUtc } } },
+    { $group: { _id: null, total: { $sum: "$amount" } } },
+  ]);
+  return agg?.total ?? 0;
+}
+
+function confirmationText(
+  amount: number,
+  note: string,
+  category: string,
+  list: Category[],
+  todayTotal: number
+): string {
+  return `${categoryEmoji(category, list)} ${inr(amount)} · ${note} → ${getCategoryDisplay(category, list)}\nToday ${inr(todayTotal)}`;
+}
+
+/** Clears buttons on the previous confirmation so only the latest one is actionable. */
+async function retirePreviousActionMessage(
+  chatId: number,
+  user: { _id: mongoose.Types.ObjectId; telegramLastActionMsgId?: number },
+  newMessageId?: number
+) {
+  const prev = user.telegramLastActionMsgId;
+  if (prev && prev !== newMessageId) {
+    await editTelegramReplyMarkup(chatId, prev).catch(() => {});
+  }
+  if (newMessageId) {
+    await User.updateOne({ _id: user._id }, { $set: { telegramLastActionMsgId: newMessageId } });
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -147,6 +210,8 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
+      const userCats = await getCategoriesForUserId(user._id);
+
       // Security Constraint: All queries strictly scoped by user._id
       if (action === "pick") {
         const tx = await Transaction.findOne({ _id: expenseId, userId: user._id });
@@ -154,9 +219,9 @@ export async function POST(req: NextRequest) {
           await editTelegramMessageText(
             chatId,
             messageId,
-            `Select category for ₹${tx.amount} — ${tx.note || "Expense"}:`,
+            `${inr(tx.amount)} · ${tx.note || "Expense"}\nPick a category:`,
             {
-              reply_markup: buildCategoryPickerKeyboard(expenseId),
+              reply_markup: buildCategoryPickerKeyboard(expenseId, userCats),
             }
           );
         }
@@ -165,7 +230,8 @@ export async function POST(req: NextRequest) {
       }
 
       if (action === "cat") {
-        const targetCategory = value || "others";
+        const targetCategory =
+          findCategory(userCats, value || "others")?.label ?? (value || "others");
         const updatedTx = await Transaction.findOneAndUpdate(
           { _id: expenseId, userId: user._id },
           { $set: { category: targetCategory } },
@@ -173,14 +239,20 @@ export async function POST(req: NextRequest) {
         );
 
         if (updatedTx && messageId) {
-          const categoryDisplay = getCategoryDisplay(updatedTx.category);
+          const categoryDisplay = getCategoryDisplay(updatedTx.category, userCats);
+          const todayTotal = await todayExpenseTotal(user._id);
           await editTelegramMessageText(
             chatId,
             messageId,
-            `✅ Saved ₹${updatedTx.amount} — ${updatedTx.note || "Expense"} • ${categoryDisplay}`,
-            {
-              reply_markup: buildResolvedKeyboard(expenseId),
-            }
+            confirmationText(
+              updatedTx.amount,
+              updatedTx.note || "Expense",
+              updatedTx.category,
+              userCats,
+              todayTotal
+            ),
+            // Category was just chosen by hand, so only offer Undo.
+            { reply_markup: buildUndoOnlyKeyboard(expenseId) }
           );
           await answerCallbackQuery(callbackQueryId, `Category updated to ${categoryDisplay}!`);
         } else {
@@ -197,7 +269,7 @@ export async function POST(req: NextRequest) {
         });
 
         if (deletedTx && messageId) {
-          await editTelegramMessageText(chatId, messageId, "🗑️ Expense deleted.", {
+          await editTelegramMessageText(chatId, messageId, `🗑️ Removed ${inr(deletedTx.amount)} · ${deletedTx.note || "Expense"}`, {
             reply_markup: { inline_keyboard: [] },
           });
           await answerCallbackQuery(callbackQueryId, "Expense deleted!");
@@ -285,6 +357,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
+    const userCats = await getCategoriesForUserId(user._id);
+
     // -------------------------------------------------------------------------
     // Flow B: Utility Commands (/help, /today, /last, /analysis, /month)
     // -------------------------------------------------------------------------
@@ -341,7 +415,7 @@ export async function POST(req: NextRequest) {
       let reply = `📅 *Today's Expenses*\nTotal: *₹${total.toLocaleString("en-IN")}* (${countText})\n\n`;
 
       expenses.slice(0, 5).forEach((tx) => {
-        reply += `• *₹${tx.amount.toLocaleString("en-IN")}* — ${tx.note || "Expense"} _(${getCategoryDisplay(tx.category)})_\n`;
+        reply += `• *₹${tx.amount.toLocaleString("en-IN")}* — ${tx.note || "Expense"} _(${getCategoryDisplay(tx.category, userCats)})_\n`;
       });
 
       if (count > 5) {
@@ -377,7 +451,7 @@ export async function POST(req: NextRequest) {
           day: "numeric",
           month: "short",
         });
-        const categoryLabel = getCategoryDisplay(tx.category);
+        const categoryLabel = getCategoryDisplay(tx.category, userCats);
         reply += `${idx + 1}. *₹${tx.amount.toLocaleString("en-IN")}* — ${tx.note || "Expense"} • _${categoryLabel}_ (${formattedDate})\n`;
       });
 
@@ -417,7 +491,7 @@ export async function POST(req: NextRequest) {
       const sortedCategories = Object.entries(categoryTotals)
         .map(([cat, amount]) => ({
           category: cat,
-          label: getCategoryDisplay(cat),
+          label: getCategoryDisplay(cat, userCats),
           amount,
           percentage: totalSpend > 0 ? Math.round((amount / totalSpend) * 100) : 0,
         }))
@@ -497,7 +571,7 @@ export async function POST(req: NextRequest) {
 
     // Priority 1: User hashtag (#category)
     if (parsed.categoryName) {
-      resolvedCategory = resolveCategory(parsed.categoryName);
+      resolvedCategory = resolveCategory(parsed.categoryName, userCats);
       if (!resolvedCategory) {
         // If unrecognized custom category, check if valid string or default to others
         resolvedCategory = parsed.categoryName.toLowerCase();
@@ -525,7 +599,7 @@ export async function POST(req: NextRequest) {
     const newTx = await Transaction.create({
       userId: user._id,
       amount: parsed.amount,
-      category: resolvedCategory || "others",
+      category: resolvedCategory || findCategory(userCats, "others")?.label || "Others",
       type: "expense",
       paymentMode: "cash",
       note: parsed.description,
@@ -536,25 +610,23 @@ export async function POST(req: NextRequest) {
 
     const txId = newTx._id.toString();
 
-    // Send Confirmation with Inline Keyboard
+    // Send a compact confirmation; only the newest one keeps its buttons.
+    let sent: { ok?: boolean; result?: { message_id?: number } };
     if (resolvedCategory) {
-      const categoryDisplay = getCategoryDisplay(resolvedCategory);
-      await sendTelegramMessage(
+      const todayTotal = await todayExpenseTotal(user._id);
+      sent = await sendTelegramMessage(
         chatId,
-        `✅ Saved ₹${parsed.amount} — ${parsed.description} • ${categoryDisplay}`,
-        {
-          reply_markup: buildResolvedKeyboard(txId),
-        }
+        confirmationText(parsed.amount, parsed.description, newTx.category, userCats, todayTotal),
+        { reply_markup: buildResolvedKeyboard(txId) }
       );
     } else {
-      await sendTelegramMessage(
+      sent = await sendTelegramMessage(
         chatId,
-        `✅ Saved ₹${parsed.amount} — ${parsed.description}\nChoose a category:`,
-        {
-          reply_markup: buildCategoryPickerKeyboard(txId),
-        }
+        `${inr(parsed.amount)} · ${parsed.description}\nPick a category:`,
+        { reply_markup: buildCategoryPickerKeyboard(txId, userCats) }
       );
     }
+    await retirePreviousActionMessage(chatId, user, sent?.result?.message_id);
 
     return NextResponse.json({ ok: true });
   } catch (error: any) {

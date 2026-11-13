@@ -7,7 +7,8 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { getCategoryColor } from "@/lib/categories";
+import { findCategory } from "@/lib/categories";
+import { useCategories } from "@/components/categories/categories-provider";
 import { CategoryIcon } from "@/components/category-icon";
 
 interface CategoryData {
@@ -52,6 +53,8 @@ function CustomTooltip({ active, payload }: any) {
 }
 
 export function CategoryDonut({ data }: CategoryDonutProps) {
+  const categories = useCategories();
+  const getCategoryColor = (name: string) => findCategory(categories, name)?.color;
   if (!data.length) {
     return (
       <div className="flex items-center justify-center h-[200px] text-muted-foreground text-sm">

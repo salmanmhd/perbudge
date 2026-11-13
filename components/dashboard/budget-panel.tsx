@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResponsiveModal } from "@/components/ui/responsive-modal";
 import { updateBudgetPlan, type BudgetPlan } from "@/lib/actions/budget";
-import { CATEGORIES } from "@/lib/categories";
+import { categoriesForType } from "@/lib/categories";
+import { useCategories } from "@/components/categories/categories-provider";
 import { CategoryIcon } from "@/components/category-icon";
 import { formatINR, sanitizeAmountInput } from "@/lib/finance";
 import { BudgetCoach } from "@/components/dashboard/budget-coach";
@@ -500,7 +501,12 @@ function CategoryBudgetsButton({
   const [limits, setLimits] = useState<Record<string, string>>(initial);
   const [saving, setSaving] = useState(false);
 
-  const expenseCats = CATEGORIES.filter((c) => c.id !== "salary");
+  const allCategories = useCategories();
+  const expenseCats = categoriesForType(allCategories, "expense").map((c) => ({
+    ...c,
+    // budgets are keyed by lowercase label (matches transaction.category)
+    key: c.label.toLowerCase(),
+  }));
 
   return (
     <ResponsiveModal
@@ -527,11 +533,11 @@ function CategoryBudgetsButton({
                   </span>
                   <Input
                     inputMode="numeric"
-                    value={limits[c.id] || ""}
+                    value={limits[c.key] || ""}
                     onChange={(e) =>
                       setLimits((p) => ({
                         ...p,
-                        [c.id]: sanitizeAmountInput(e.target.value),
+                        [c.key]: sanitizeAmountInput(e.target.value),
                       }))
                     }
                     placeholder="0"

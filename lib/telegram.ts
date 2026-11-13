@@ -82,6 +82,23 @@ export async function editTelegramMessageText(
 }
 
 /**
+ * Replaces (or clears, with an empty keyboard) the inline buttons on a message.
+ */
+export async function editTelegramReplyMarkup(
+  chatId: number | string,
+  messageId: number,
+  replyMarkup: InlineKeyboardMarkup = { inline_keyboard: [] }
+) {
+  const token = getBotToken();
+  const res = await fetch(`${TELEGRAM_API_BASE}/bot${token}/editMessageReplyMarkup`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: chatId, message_id: messageId, reply_markup: replyMarkup }),
+  });
+  return await res.json();
+}
+
+/**
  * Answers a Telegram callback query to dismiss loading state on inline buttons.
  */
 export async function answerCallbackQuery(

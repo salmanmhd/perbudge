@@ -2,9 +2,14 @@
 
 import { Type } from "@google/genai";
 import { generateWithModelFallback } from "@/lib/ai-audit";
+import { getUserCategories } from "@/lib/actions/categories";
 
 export async function parseTransactionNLP(text: string) {
   try {
+    const cats = await getUserCategories().catch(() => []);
+    const catList = cats.length
+      ? cats.map((c) => c.label).join(", ")
+      : "Food, Transport, Rent, Salary, Entertainment, Shopping, Health, Education, Bills, Others";
     const result = await generateWithModelFallback(
       `Parse the following transaction text into a structured JSON object. Focus on typical Indian spending contexts.
 Text: "${text}"`,
@@ -15,7 +20,7 @@ Text: "${text}"`,
             type: Type.OBJECT,
             properties: {
               amount: { type: Type.NUMBER, description: "The absolute numeric amount of the transaction." },
-              category: { type: Type.STRING, description: "A logical category (e.g., Food, Transport, Rent, Salary, Entertainment, Shopping, Health, Education, Bills, Others)." },
+              category: { type: Type.STRING, description: `One of the user's categories: ${catList}. Use the exact name; pick the closest match, or Others.` },
               type: { type: Type.STRING, enum: ["income", "expense", "transfer"], description: "Whether this is an income, expense, or transfer." },
               paymentMode: { type: Type.STRING, enum: ["cash", "credit_card"], description: "Payment mode. Use 'credit_card' only if the text explicitly mentions credit card. For UPI, bank, cash, or any other mode use 'cash'." },
               counterparty: { type: Type.STRING, description: "Who the money was paid to or received from (e.g., Rahul, Starbucks). Leave empty if not applicable." },

@@ -1,38 +1,39 @@
+"use client";
+
+import { createElement } from "react";
 import {
-  Utensils,
-  Car,
-  Home,
-  ReceiptText,
-  Gamepad2,
-  ShoppingBag,
-  HeartPulse,
-  GraduationCap,
-  Banknote,
-  Receipt,
+  Utensils, Car, House, ReceiptText, Gamepad2, ShoppingBag, HeartPulse, GraduationCap,
+  Banknote, Receipt, Coffee, Plane, Fuel, Shirt, Gift, PawPrint, Baby, Dumbbell, Music,
+  Film, Smartphone, Wifi, Zap, Droplets, Wrench, Briefcase, PiggyBank, TrendingUp, Landmark,
+  CreditCard, BookOpen, Pill, Stethoscope, Bus, Train, Bike, Pizza, ShoppingCart, Heart,
+  Sparkles, Scissors, Hammer, Laptop, Tv, Gamepad, Wallet, HandCoins, Users, Church,
   type LucideIcon,
 } from "lucide-react";
-import { getCategoryByName, getCategoryColor } from "@/lib/categories";
+import { findCategory, CATEGORIES } from "@/lib/categories";
+import { useCategories } from "@/components/categories/categories-provider";
 import { cn } from "@/lib/utils";
 
-const ICON_MAP: Record<string, LucideIcon> = {
-  food: Utensils,
-  transport: Car,
-  rent: Home,
-  bills: ReceiptText,
-  entertainment: Gamepad2,
-  shopping: ShoppingBag,
-  health: HeartPulse,
-  education: GraduationCap,
-  salary: Banknote,
-  others: Receipt,
+/** Icons a user can pick for a category. Keys are stored in the DB. */
+export const ICON_REGISTRY: Record<string, LucideIcon> = {
+  Utensils, Pizza, Coffee, ShoppingCart, Car, Bus, Train, Bike, Fuel, Plane, House, Wrench,
+  Hammer, ReceiptText, Zap, Droplets, Wifi, Smartphone, Gamepad2, Gamepad, Film, Music, Tv,
+  ShoppingBag, Shirt, Gift, Scissors, Sparkles, HeartPulse, Pill, Stethoscope, Dumbbell,
+  GraduationCap, BookOpen, Laptop, Baby, PawPrint, Users, Heart, Church, Banknote, Briefcase,
+  PiggyBank, TrendingUp, Landmark, CreditCard, Wallet, HandCoins, Receipt,
 };
 
-export function getCategoryIcon(name: string): LucideIcon {
-  const cat = getCategoryByName(name);
-  return ICON_MAP[cat?.id ?? "others"] ?? Receipt;
+// Legacy alias
+ICON_REGISTRY.Home = House;
+
+export function resolveIcon(iconName: string | undefined): LucideIcon {
+  return (iconName && ICON_REGISTRY[iconName]) || Receipt;
 }
 
-/** Renders the lucide icon for a category, optionally in its category color. */
+export function getCategoryIcon(name: string, list: typeof CATEGORIES = CATEGORIES): LucideIcon {
+  return resolveIcon(findCategory(list, name)?.icon);
+}
+
+/** Renders the icon for a category (user's own list), optionally in its color. */
 export function CategoryIcon({
   name,
   className,
@@ -42,11 +43,10 @@ export function CategoryIcon({
   className?: string;
   colored?: boolean;
 }) {
-  const Icon = getCategoryIcon(name);
-  return (
-    <Icon
-      className={cn("h-4 w-4", className)}
-      style={colored ? { color: getCategoryColor(name) } : undefined}
-    />
-  );
+  const list = useCategories();
+  const cat = findCategory(list, name) ?? findCategory(CATEGORIES, name);
+  return createElement(resolveIcon(cat?.icon), {
+    className: cn("h-4 w-4", className),
+    style: colored ? { color: cat?.color || "oklch(0.60 0.08 260)" } : undefined,
+  });
 }

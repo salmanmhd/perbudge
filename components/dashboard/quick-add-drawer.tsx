@@ -13,7 +13,8 @@ import { Input } from "@/components/ui/input";
 import { createTransaction } from "@/lib/actions/transaction-db";
 import { getAccounts, type AccountView } from "@/lib/actions/accounts";
 import { parseTransactionNLP } from "@/app/actions/transaction";
-import { CATEGORIES } from "@/lib/categories";
+import { categoriesForType } from "@/lib/categories";
+import { useCategories } from "@/components/categories/categories-provider";
 import { CategoryIcon } from "@/components/category-icon";
 import { DatePicker } from "@/components/ui/date-picker";
 import { useMediaQuery } from "@/hooks/use-media-query";
@@ -124,12 +125,10 @@ export function QuickAddDrawer({ children, triggerShortcut }: QuickAddDrawerProp
     setIsParsing(false);
   };
 
+  const allCategories = useCategories();
   const visibleCategories = useMemo(
-    () =>
-      CATEGORIES.filter((c) =>
-        type === "income" ? c.id === "salary" || c.id === "others" : c.id !== "salary"
-      ),
-    [type]
+    () => categoriesForType(allCategories, type),
+    [allCategories, type]
   );
 
   const handleCategorySelect = (cat: string) => {

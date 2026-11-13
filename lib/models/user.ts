@@ -27,6 +27,8 @@ export interface IUser extends Document {
   currency: string;
   telegramChatId?: number;
   telegramLinkToken?: string;
+  /** Last bot confirmation that still carries inline buttons. */
+  telegramLastActionMsgId?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -59,6 +61,7 @@ const UserSchema = new Schema<IUser>(
     currency: { type: String, default: "INR" },
     telegramChatId: { type: Number, unique: true, sparse: true },
     telegramLinkToken: { type: String, unique: true, sparse: true },
+    telegramLastActionMsgId: { type: Number },
   },
   { timestamps: true }
 );
