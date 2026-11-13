@@ -109,24 +109,6 @@ function buildUndoOnlyKeyboard(expenseId: string): InlineKeyboardMarkup {
   return { inline_keyboard: [[{ text: "↩️ Undo", callback_data: `del:${expenseId}` }]] };
 }
 
-/** Emoji shown in chat for each selectable category icon. */
-const ICON_EMOJI: Record<string, string> = {
-  Utensils: "🍽️", Pizza: "🍕", Coffee: "☕", ShoppingCart: "🛒", Car: "🚗", Bus: "🚌",
-  Train: "🚆", Bike: "🚲", Fuel: "⛽", Plane: "✈️", House: "🏠", Home: "🏠", Wrench: "🔧",
-  Hammer: "🔨", ReceiptText: "🧾", Zap: "⚡", Droplets: "💧", Wifi: "📶", Smartphone: "📱",
-  Gamepad2: "🎮", Gamepad: "🎮", Film: "🎬", Music: "🎵", Tv: "📺", ShoppingBag: "🛍️",
-  Shirt: "👕", Gift: "🎁", Scissors: "✂️", Sparkles: "✨", HeartPulse: "🩺", Pill: "💊",
-  Stethoscope: "🩺", Dumbbell: "🏋️", GraduationCap: "🎓", BookOpen: "📚", Laptop: "💻",
-  Baby: "🍼", PawPrint: "🐾", Users: "👥", Heart: "❤️", Church: "🛕", Banknote: "💵",
-  Briefcase: "💼", PiggyBank: "🐷", TrendingUp: "📈", Landmark: "🏦", CreditCard: "💳",
-  Wallet: "👛", HandCoins: "🪙", Receipt: "📦",
-};
-
-function categoryEmoji(name: string, list: Category[]): string {
-  const cat = findCategory(list, name);
-  return (cat && ICON_EMOJI[cat.icon]) || "📦";
-}
-
 const inr = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
 /** Sum of today's expenses (India time) for the running total. */
@@ -145,12 +127,11 @@ async function todayExpenseTotal(userId: mongoose.Types.ObjectId): Promise<numbe
 
 function confirmationText(
   amount: number,
-  note: string,
   category: string,
   list: Category[],
   todayTotal: number
 ): string {
-  return `${categoryEmoji(category, list)} ${inr(amount)} · ${note} → ${getCategoryDisplay(category, list)}\nToday ${inr(todayTotal)}`;
+  return `${inr(amount)} · ${getCategoryDisplay(category, list)}\nToday ${inr(todayTotal)}`;
 }
 
 /** Clears buttons on the previous confirmation so only the latest one is actionable. */
@@ -246,7 +227,6 @@ export async function POST(req: NextRequest) {
             messageId,
             confirmationText(
               updatedTx.amount,
-              updatedTx.note || "Expense",
               updatedTx.category,
               userCats,
               todayTotal
@@ -616,7 +596,7 @@ export async function POST(req: NextRequest) {
       const todayTotal = await todayExpenseTotal(user._id);
       sent = await sendTelegramMessage(
         chatId,
-        confirmationText(parsed.amount, parsed.description, newTx.category, userCats, todayTotal),
+        confirmationText(parsed.amount, newTx.category, userCats, todayTotal),
         { reply_markup: buildResolvedKeyboard(txId) }
       );
     } else {
