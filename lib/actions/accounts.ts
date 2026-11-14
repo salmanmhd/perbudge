@@ -6,6 +6,7 @@ import Account from "@/lib/models/account";
 import Transaction from "@/lib/models/transaction";
 import type { AccountType } from "@/lib/models/account";
 import { nextDueDate, round2 } from "@/lib/finance";
+import { errorMessage } from "@/lib/errors";
 
 export interface AccountView {
   _id: string;
@@ -46,7 +47,7 @@ export async function getAccounts(): Promise<AccountView[]> {
     .lean();
 
   const views: AccountView[] = [];
-  for (const acc of accounts as any[]) {
+  for (const acc of accounts) {
     const base: AccountView = {
       _id: String(acc._id),
       name: acc.name,
@@ -127,9 +128,9 @@ export async function createAccount(data: {
     revalidatePath("/dashboard/accounts");
     revalidatePath("/dashboard");
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error("createAccount error:", error);
-    return { success: false, error: error.message || "Failed to add account." };
+    return { success: false, error: errorMessage(error) || "Failed to add account." };
   }
 }
 
@@ -154,8 +155,8 @@ export async function updateAccount(
     await Account.updateOne({ _id: id, userId: userObjectId }, { $set: data });
     revalidatePath("/dashboard/accounts");
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message || "Failed to update account." };
+  } catch (error) {
+    return { success: false, error: errorMessage(error) || "Failed to update account." };
   }
 }
 

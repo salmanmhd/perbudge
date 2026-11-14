@@ -8,6 +8,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { findCategory } from "@/lib/categories";
+import type { ChartTooltipProps } from "@/lib/chart-types";
 import { useCategories } from "@/components/categories/categories-provider";
 import { CategoryIcon } from "@/components/category-icon";
 
@@ -32,10 +33,11 @@ const CHART_COLORS = [
   "oklch(0.60 0.08 260)",  // others - gray
 ];
 
-function CustomTooltip({ active, payload }: any) {
-  if (!active || !payload?.length) return null;
+function CustomTooltip({ active, payload }: ChartTooltipProps<{ name: string; value: number }>) {
+  const point = payload?.[0]?.payload;
+  if (!active || !point) return null;
 
-  const { name, value } = payload[0].payload;
+  const { name, value } = point;
   const formatted = new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",

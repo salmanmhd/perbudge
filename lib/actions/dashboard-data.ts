@@ -1,4 +1,5 @@
 "use server";
+import type { RecentTransaction } from "@/components/dashboard/recent-transactions";
 
 import { auth, currentUser } from "@clerk/nextjs/server";
 import connectToDatabase from "@/lib/db";
@@ -36,9 +37,9 @@ export async function ensureUserInDb() {
       { upsert: true, new: true }
     );
     return dbUser!._id;
-  } catch (err: any) {
+  } catch (err) {
     // A concurrent request won the insert — the row now exists, so fetch it.
-    if (err?.code === 11000) {
+    if ((err as { code?: number } | null)?.code === 11000) {
       const dbUser = await User.findOne({ clerkId: userId }).select("_id");
       if (dbUser) return dbUser._id;
     }
@@ -78,7 +79,7 @@ export async function getRecentTransactions(limit = 5) {
     .limit(limit)
     .lean();
 
-  return JSON.parse(JSON.stringify(transactions));
+  return JSON.parse(JSON.stringify(transactions)) as RecentTransaction[];
 }
 
 export async function getCategoryBreakdown() {
@@ -108,7 +109,20 @@ export async function getCategoryBreakdown() {
     },
   ]);
 
-  return result.map((r) => ({ name: r._id, value: r.total, count: r.count }));
+  // Merge case variants ("food" vs "Food"), keeping the capitalised spelling.
+  const merged = new Map<string, { name: string; value: number; count: number }>();
+  for (const r of result) {
+    const name = String(r._id);
+    const key = name.toLowerCase();
+    const prev = merged.get(key);
+    if (!prev) merged.set(key, { name, value: r.total, count: r.count });
+    else {
+      prev.value += r.total;
+      prev.count += r.count;
+      if (name[0] !== name[0]?.toLowerCase()) prev.name = name;
+    }
+  }
+  return [...merged.values()].sort((a, b) => b.value - a.value);
 }
 
 export async function getTodaySummary() {

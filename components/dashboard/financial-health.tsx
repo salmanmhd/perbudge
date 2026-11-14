@@ -41,10 +41,8 @@ export function FinancialHealth() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const run = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    const res = await analyzeFinances();
+  // Applies a result; only ever called from a promise callback.
+  const apply = useCallback((res: Awaited<ReturnType<typeof analyzeFinances>>) => {
     if (res.success) {
       setIssues(
         [...res.issues].sort((a, b) => ORDER[a.severity] - ORDER[b.severity])
@@ -55,9 +53,22 @@ export function FinancialHealth() {
     setLoading(false);
   }, []);
 
+  /** Manual re-run (button): show the spinner, then load. */
+  const run = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    return analyzeFinances().then(apply);
+  }, [apply]);
+
   useEffect(() => {
-    run();
-  }, [run]);
+    let cancelled = false;
+    analyzeFinances().then((res) => {
+      if (!cancelled) apply(res);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [apply]);
 
   return (
     <div className="space-y-4">

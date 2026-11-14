@@ -22,7 +22,8 @@ const formSchema = z.object({
   date: z.string().optional(),
 });
 
-type FormData = z.infer<typeof formSchema>;
+type FormInput = z.input<typeof formSchema>;
+type FormData = z.output<typeof formSchema>;
 
 export function AddTransactionForm() {
   const router = useRouter();
@@ -37,8 +38,8 @@ export function AddTransactionForm() {
     setValue,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm({
-    resolver: zodResolver(formSchema) as any,
+  } = useForm<FormInput, unknown, FormData>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
       amount: 0,
       category: "",

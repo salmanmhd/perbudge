@@ -38,6 +38,6 @@ const LedgerSchema = new Schema<ILedger>(
   { timestamps: true }
 );
 
-const Ledger = models.Ledger || mongoose.model<ILedger>("Ledger", LedgerSchema);
+const Ledger = (models.Ledger as mongoose.Model<ILedger> | undefined) ?? mongoose.model<ILedger>("Ledger", LedgerSchema);
 
 export default Ledger;

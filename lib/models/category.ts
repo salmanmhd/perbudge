@@ -35,6 +35,6 @@ const UserCategorySchema = new Schema<IUserCategory>(
 UserCategorySchema.index({ userId: 1, slug: 1 }, { unique: true });
 
 const UserCategory =
-  models.UserCategory || mongoose.model<IUserCategory>("UserCategory", UserCategorySchema);
+  (models.UserCategory as mongoose.Model<IUserCategory> | undefined) ?? mongoose.model<IUserCategory>("UserCategory", UserCategorySchema);
 
 export default UserCategory;

@@ -3,6 +3,8 @@ export interface ParsedExpense {
   description: string;
   categoryName: string | null;
   date: Date;
+  /** Message started with "+", e.g. "+5000 salary". */
+  isIncome: boolean;
 }
 
 /**
@@ -24,6 +26,10 @@ export function parseExpenseMessage(
 
   let remaining = text.trim();
   if (!remaining) return null;
+
+  // 0. Leading "+" marks income
+  const isIncome = remaining.startsWith("+");
+  if (isIncome) remaining = remaining.slice(1).trim();
 
   // 1. Timestamp handling: start from Telegram message date or current date
   let date = messageDateSec ? new Date(messageDateSec * 1000) : new Date();
@@ -88,7 +94,7 @@ export function parseExpenseMessage(
     .trim();
 
   if (!description) {
-    description = "Quick Expense";
+    description = isIncome ? "Income" : "Quick Expense";
   }
 
   return {
@@ -96,5 +102,6 @@ export function parseExpenseMessage(
     description,
     categoryName,
     date,
+    isIncome,
   };
 }

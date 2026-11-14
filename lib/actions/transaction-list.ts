@@ -1,7 +1,8 @@
 "use server";
 
 import { ensureUserInDb } from "./dashboard-data";
-import Transaction from "@/lib/models/transaction";
+import type mongoose from "mongoose";
+import Transaction, { type ITransaction } from "@/lib/models/transaction";
 
 export async function getAllTransactions(filters?: {
   type?: string;
@@ -17,10 +18,10 @@ export async function getAllTransactions(filters?: {
   const limit = filters?.limit || 20;
   const skip = (page - 1) * limit;
 
-  const query: any = { userId: userObjectId };
+  const query: mongoose.QueryFilter<ITransaction> = { userId: userObjectId };
 
   if (filters?.type && filters.type !== "all") {
-    query.type = filters.type;
+    query.type = filters.type as ITransaction["type"];
   }
   if (filters?.category) {
     query.category = { $regex: filters.category, $options: "i" };

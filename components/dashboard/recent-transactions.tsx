@@ -1,7 +1,18 @@
 import { CreditCard, Banknote } from "lucide-react";
 import { CategoryIcon } from "@/components/category-icon";
 
-export function RecentTransactions({ transactions }: { transactions: any[] }) {
+/** Serialized transaction as returned by getRecentTransactions(). */
+export interface RecentTransaction {
+  _id: string;
+  amount: number;
+  category: string;
+  type: "income" | "expense" | "transfer";
+  paymentMode?: "cash" | "credit_card";
+  counterparty?: string;
+  date: string;
+}
+
+export function RecentTransactions({ transactions }: { transactions: RecentTransaction[] }) {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-IN", {
       style: "currency",

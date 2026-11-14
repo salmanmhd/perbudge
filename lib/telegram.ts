@@ -34,7 +34,7 @@ export async function sendTelegramMessage(
   const token = getBotToken();
   const url = `${TELEGRAM_API_BASE}/bot${token}/sendMessage`;
 
-  const payload: Record<string, any> = {
+  const payload: Record<string, unknown> = {
     chat_id: chatId,
     text,
   };
@@ -63,7 +63,7 @@ export async function editTelegramMessageText(
   const token = getBotToken();
   const url = `${TELEGRAM_API_BASE}/bot${token}/editMessageText`;
 
-  const payload: Record<string, any> = {
+  const payload: Record<string, unknown> = {
     chat_id: chatId,
     message_id: messageId,
     text,
@@ -109,7 +109,7 @@ export async function answerCallbackQuery(
   const token = getBotToken();
   const url = `${TELEGRAM_API_BASE}/bot${token}/answerCallbackQuery`;
 
-  const payload: Record<string, any> = {
+  const payload: Record<string, unknown> = {
     callback_query_id: callbackQueryId,
   };
 
@@ -127,6 +127,26 @@ export async function answerCallbackQuery(
   return await res.json();
 }
 
+/** Bot commands shown in Telegram's Menu button. */
+export const BOT_COMMANDS = [
+  { command: "today", description: "Today's spending" },
+  { command: "last", description: "Last 5 expenses" },
+  { command: "month", description: "This month's total" },
+  { command: "analysis", description: "Monthly breakdown + AI insight" },
+  { command: "help", description: "How to log expenses" },
+];
+
+/** Registers the command menu (idempotent, safe to call repeatedly). */
+export async function setTelegramCommands() {
+  const token = getBotToken();
+  const res = await fetch(`${TELEGRAM_API_BASE}/bot${token}/setMyCommands`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ commands: BOT_COMMANDS }),
+  });
+  return await res.json();
+}
+
 /**
  * Registers the webhook URL with Telegram.
  */
@@ -134,7 +154,7 @@ export async function setTelegramWebhook(webhookUrl: string, secretToken?: strin
   const token = getBotToken();
   const url = `${TELEGRAM_API_BASE}/bot${token}/setWebhook`;
 
-  const payload: Record<string, any> = {
+  const payload: Record<string, unknown> = {
     url: webhookUrl,
     allowed_updates: ["message", "callback_query"],
   };

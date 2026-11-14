@@ -2,12 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { ensureUserInDb } from "@/lib/actions/dashboard-data";
-import Ledger from "@/lib/models/ledger";
+import type mongoose from "mongoose";
+import Ledger, { type ILedger } from "@/lib/models/ledger";
 import { ledgerOutstanding, round2 } from "@/lib/finance";
 import type {
   LedgerKind,
   LedgerDirection,
 } from "@/lib/models/ledger";
+import { errorMessage } from "@/lib/errors";
 
 export interface LedgerView {
   _id: string;
@@ -30,7 +32,7 @@ export interface LedgerSummary {
   net: number; // receivable - payable
 }
 
-function toView(e: any): LedgerView {
+function toView(e: ILedger & { _id: unknown }): LedgerView {
   return {
     _id: String(e._id),
     kind: e.kind,
@@ -51,14 +53,14 @@ export async function getLedger(kind?: LedgerKind): Promise<LedgerSummary> {
   if (!userObjectId)
     return { entries: [], totalReceivable: 0, totalPayable: 0, net: 0 };
 
-  const query: any = { userId: userObjectId };
+  const query: mongoose.QueryFilter<ILedger> = { userId: userObjectId };
   if (kind) query.kind = kind;
 
   const rows = await Ledger.find(query)
     .sort({ status: 1, dueDate: 1, date: -1 })
     .lean();
 
-  const entries = (rows as any[]).map(toView);
+  const entries = rows.map(toView);
 
   let totalReceivable = 0;
   let totalPayable = 0;
@@ -104,9 +106,9 @@ export async function createLedgerEntry(data: {
     revalidatePath("/dashboard/owed");
     revalidatePath("/dashboard");
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error("createLedgerEntry error:", error);
-    return { success: false, error: error.message || "Failed to add entry." };
+    return { success: false, error: errorMessage(error) || "Failed to add entry." };
   }
 }
 

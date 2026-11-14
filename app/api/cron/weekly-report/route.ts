@@ -8,6 +8,7 @@ import {
 import { generateDigestFromContext } from "@/lib/ai/digest";
 import { renderWeeklyReportEmail } from "@/lib/email/weekly-report";
 import { sendEmail } from "@/lib/email/send";
+import { errorMessage } from "@/lib/errors";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
   let skipped = 0;
   const errors: string[] = [];
 
-  for (const user of users as any[]) {
+  for (const user of users) {
     try {
       const snapshot = await computeSnapshotForUser(user._id, user);
       if (snapshot.recentCount === 0) {
@@ -57,8 +58,8 @@ export async function GET(req: NextRequest) {
         skipped++;
         if (!result.skipped && result.error) errors.push(`${user.email}: ${result.error}`);
       }
-    } catch (e: any) {
-      errors.push(`${user.email}: ${e?.message || "failed"}`);
+    } catch (e) {
+      errors.push(`${user.email}: ${errorMessage(e) || "failed"}`);
     }
   }
 

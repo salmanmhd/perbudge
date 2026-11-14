@@ -21,7 +21,7 @@ export async function getUserTransactionContext() {
   let contextText = "User's Recent Transactions:\n";
   contextText += "Date | Type | Category | Amount | Counterparty\n";
   
-  transactions.forEach((tx: any) => {
+  transactions.forEach((tx) => {
     const d = new Date(tx.date).toLocaleDateString("en-IN");
     contextText += `${d} | ${tx.type} | ${tx.category} | ${tx.amount} | ${tx.counterparty || 'N/A'}\n`;
   });

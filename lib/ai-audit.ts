@@ -1,4 +1,5 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, type ContentListUnion, type GenerateContentConfig } from "@google/genai";
+import { errorMessage } from "@/lib/errors";
 
 export const PRIMARY_MODEL = "gemini-3.8-flash";
 export const FALLBACK_MODEL = "gemini-3.6-flash";
@@ -17,7 +18,7 @@ function getGenAIClient(): GoogleGenAI | null {
 export interface GenerateWithFallbackOptions {
   systemInstruction?: string;
   temperature?: number;
-  config?: any;
+  config?: GenerateContentConfig;
 }
 
 export interface ModelGenerationResult {
@@ -32,7 +33,7 @@ export interface ModelGenerationResult {
  * Tries PRIMARY_MODEL (gemini-3.8-flash) -> FALLBACK_MODEL (gemini-3.6-flash) -> gemini-3.5-flash.
  */
 export async function generateWithModelFallback(
-  contents: string | any,
+  contents: ContentListUnion,
   options?: GenerateWithFallbackOptions
 ): Promise<ModelGenerationResult> {
   const ai = getGenAIClient();
@@ -45,7 +46,7 @@ export async function generateWithModelFallback(
     };
   }
 
-  const baseConfig: Record<string, any> = { ...(options?.config || {}) };
+  const baseConfig: GenerateContentConfig = { ...(options?.config || {}) };
   if (options?.systemInstruction) {
     baseConfig.systemInstruction = options.systemInstruction;
   }
@@ -55,7 +56,7 @@ export async function generateWithModelFallback(
 
   const finalConfig = Object.keys(baseConfig).length > 0 ? baseConfig : undefined;
 
-  let lastError: any = null;
+  let lastError: unknown = null;
 
   for (const model of MODEL_CHAIN) {
     try {
@@ -72,20 +73,21 @@ export async function generateWithModelFallback(
           success: true,
         };
       }
-    } catch (err: any) {
+    } catch (err) {
       lastError = err;
+      const info = (err ?? {}) as { status?: unknown; code?: unknown };
       console.warn(
-        `[AI-Client] Model ${model} failed (${err?.status || err?.code || "error"}): ${err?.message || err}. Trying next fallback...`
+        `[AI-Client] Model ${model} failed (${info.status || info.code || "error"}): ${errorMessage(err, String(err))}. Trying next fallback...`
       );
     }
   }
 
-  console.error("[AI-Client] All fallback models failed:", lastError?.message || lastError);
+  console.error("[AI-Client] All fallback models failed:", errorMessage(lastError, String(lastError)));
   return {
     text: null,
     modelUsed: null,
     success: false,
-    error: lastError?.message || "All Gemini models are temporarily unavailable.",
+    error: errorMessage(lastError, "All Gemini models are temporarily unavailable."),
   };
 }
 

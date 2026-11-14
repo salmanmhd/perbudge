@@ -4,7 +4,7 @@ import Transaction from "@/lib/models/transaction";
 import Loan from "@/lib/models/loan";
 import Account from "@/lib/models/account";
 import Ledger from "@/lib/models/ledger";
-import User from "@/lib/models/user";
+import User, { type IUser } from "@/lib/models/user";
 import { auth } from "@clerk/nextjs/server";
 import {
   formatINR,
@@ -37,7 +37,7 @@ export interface FinancialSnapshot {
  */
 export async function computeSnapshotForUser(
   userObjectId: mongoose.Types.ObjectId,
-  userDoc: any
+  userDoc: Pick<IUser, "firstName"> & Partial<IUser> | null
 ): Promise<FinancialSnapshot> {
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -67,7 +67,7 @@ export async function computeSnapshotForUser(
   const catMap: Record<string, number> = {};
   const bucketSpend = { needs: 0, wants: 0, savings: 0 };
 
-  for (const tx of monthTx as any[]) {
+  for (const tx of monthTx) {
     if (tx.type === "income") monthIncome += tx.amount;
     else if (tx.type === "expense") {
       monthExpense += tx.amount;
@@ -83,12 +83,12 @@ export async function computeSnapshotForUser(
 
   const spendByCard: Record<string, number> = {};
   let genericCcSpend = 0;
-  for (const r of ccSpendAgg as any[]) {
+  for (const r of ccSpendAgg as { _id: unknown; total: number }[]) {
     if (r._id) spendByCard[String(r._id)] = r.total;
     else genericCcSpend += r.total;
   }
 
-  const creditCards = (cards as any[]).map((c, i) => {
+  const creditCards = cards.map((c, i) => {
     const cycleSpend = spendByCard[String(c._id)] ?? (i === 0 ? genericCcSpend : 0);
     return {
       name: c.name,
@@ -103,13 +103,13 @@ export async function computeSnapshotForUser(
 
   let receivable = 0;
   let payable = 0;
-  for (const e of ledgerRows as any[]) {
+  for (const e of ledgerRows) {
     const out = ledgerOutstanding(e);
     if (e.direction === "receivable") receivable += out;
     else payable += out;
   }
 
-  const loanViews = (loans as any[]).map((l) => ({
+  const loanViews = loans.map((l) => ({
     name: l.name,
     emiAmount: l.emiAmount,
     remainingEmis: loanRemainingEmis(l),
@@ -139,8 +139,8 @@ export async function getFinancialSnapshot(): Promise<FinancialSnapshot | null> 
   const userObjectId = await ensureUserInDb();
   const { userId } = await auth();
   if (!userObjectId || !userId) return null;
-  const userDoc: any = await User.findOne({ clerkId: userId }).lean();
-  return computeSnapshotForUser(userObjectId as any, userDoc);
+  const userDoc = await User.findOne({ clerkId: userId }).lean();
+  return computeSnapshotForUser(userObjectId, userDoc);
 }
 
 /** Turn a snapshot into an LLM-readable brief. */

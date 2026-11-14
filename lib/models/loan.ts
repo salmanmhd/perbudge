@@ -45,6 +45,6 @@ const LoanSchema = new Schema<ILoan>(
   { timestamps: true }
 );
 
-const Loan = models.Loan || mongoose.model<ILoan>("Loan", LoanSchema);
+const Loan = (models.Loan as mongoose.Model<ILoan> | undefined) ?? mongoose.model<ILoan>("Loan", LoanSchema);
 
 export default Loan;

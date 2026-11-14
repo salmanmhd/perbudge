@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Sun, Moon, Monitor, Download, Trash2 } from "lucide-react";
-import { UserProfile } from "@clerk/nextjs";
 
 export function SettingsPanel() {
   const { theme, setTheme } = useTheme();

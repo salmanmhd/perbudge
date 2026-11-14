@@ -6,11 +6,14 @@ if (!MONGODB_URI) {
   throw new Error("Please define the MONGODB_URI environment variable inside .env");
 }
 
-let cached = (global as any).mongoose;
+type MongooseCache = {
+  conn: typeof mongoose | null;
+  promise: Promise<typeof mongoose> | null;
+};
 
-if (!cached) {
-  cached = (global as any).mongoose = { conn: null, promise: null };
-}
+// Cached on globalThis so hot reloads / warm lambdas reuse one connection.
+const g = globalThis as typeof globalThis & { mongoose?: MongooseCache };
+const cached: MongooseCache = (g.mongoose ??= { conn: null, promise: null });
 
 async function connectToDatabase() {
   if (cached.conn) {

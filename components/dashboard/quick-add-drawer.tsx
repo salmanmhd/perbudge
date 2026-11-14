@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import {
@@ -92,7 +92,7 @@ export function QuickAddDrawer({ children, triggerShortcut }: QuickAddDrawerProp
 
   const router = useRouter();
 
-  const resetForm = useCallback(() => {
+  const resetForm = () => {
     setStep("amount");
     setAmount("");
     setType("expense");
@@ -105,7 +105,7 @@ export function QuickAddDrawer({ children, triggerShortcut }: QuickAddDrawerProp
     setNlpText("");
     setIsSubmitting(false);
     setIsParsing(false);
-  }, []);
+  };
 
   const handleNlpParse = async () => {
     if (!nlpText.trim()) return;
@@ -185,9 +185,11 @@ export function QuickAddDrawer({ children, triggerShortcut }: QuickAddDrawerProp
 
   // Keep a fresh submit reference for the keyboard handler (avoids stale note/date).
   const submitRef = useRef<() => void>(() => {});
-  submitRef.current = () => {
-    if (!isSubmitting) handleSubmit();
-  };
+  useEffect(() => {
+    submitRef.current = () => {
+      if (!isSubmitting) handleSubmit();
+    };
+  });
 
   // ── Physical-keyboard support (great on laptop) ──
   useEffect(() => {

@@ -1,4 +1,8 @@
-export function CategoryBreakdown({ data }: { data: any[] }) {
+export function CategoryBreakdown({
+  data,
+}: {
+  data: { name: string; value: number; count?: number }[];
+}) {
   if (!data?.length) {
     return (
       <div className="text-center py-6 text-muted-foreground">

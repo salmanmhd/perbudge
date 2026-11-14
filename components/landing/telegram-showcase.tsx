@@ -4,14 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   Send,
-  Sparkles,
   Bot,
   CheckCheck,
   RotateCcw,
-  Undo2,
   Calendar,
-  Tag,
-  ShieldCheck,
   Zap,
   ArrowRight,
 } from "lucide-react";
@@ -77,7 +73,6 @@ const PRESET_CONVERSATION: ChatMessage[] = [
 
 export function TelegramShowcase() {
   const [messages, setMessages] = useState<ChatMessage[]>(PRESET_CONVERSATION);
-  const [activeTab, setActiveTab] = useState<"demo" | "features">("demo");
   const [inputVal, setInputVal] = useState("");
 
   const handleSimulateSend = (text: string) => {

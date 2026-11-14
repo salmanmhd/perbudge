@@ -24,7 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { parseTransactionNLP } from "@/app/actions/transaction";
-import { TransactionForm } from "./transaction-form";
+import { TransactionForm, type TransactionFormInitial } from "./transaction-form";
 import { Loader2, Mic, Sparkles } from "lucide-react";
 
 export function TransactionInputModal() {
@@ -32,7 +32,7 @@ export function TransactionInputModal() {
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const [nlpText, setNlpText] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
-  const [parsedData, setParsedData] = React.useState<any>(null);
+  const [parsedData, setParsedData] = React.useState<TransactionFormInitial>(null);
 
   const handleParse = async () => {
     if (!nlpText.trim()) return;

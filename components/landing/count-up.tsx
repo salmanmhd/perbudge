@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePrefersReducedMotion } from "@/hooks/use-media-query";
 
 /** Counts up to `value` when scrolled into view. Respects reduced motion. */
 export function CountUp({
@@ -21,18 +22,11 @@ export function CountUp({
   const ref = useRef<HTMLSpanElement | null>(null);
   const [display, setDisplay] = useState(0);
   const started = useRef(false);
+  const reduce = usePrefersReducedMotion();
 
   useEffect(() => {
     const el = ref.current;
-    if (!el) return;
-
-    const reduce =
-      typeof window !== "undefined" &&
-      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) {
-      setDisplay(value);
-      return;
-    }
+    if (!el || reduce) return;
 
     const io = new IntersectionObserver(
       ([entry]) => {
@@ -53,9 +47,9 @@ export function CountUp({
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [value, duration]);
+  }, [value, duration, reduce]);
 
-  const formatted = display.toLocaleString("en-IN", {
+  const formatted = (reduce ? value : display).toLocaleString("en-IN", {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });

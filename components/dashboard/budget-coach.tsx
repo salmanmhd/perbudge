@@ -24,10 +24,8 @@ export function BudgetCoach() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const run = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    const res = await getBudgetCoaching();
+  // Applies a result; only ever called from a promise callback.
+  const apply = useCallback((res: Awaited<ReturnType<typeof getBudgetCoaching>>) => {
     setOnTrack(res.onTrack);
     if (res.success) {
       setTips([...res.tips].sort((a, b) => ORDER[a.tone] - ORDER[b.tone]));
@@ -37,9 +35,22 @@ export function BudgetCoach() {
     setLoading(false);
   }, []);
 
+  /** Manual re-run (button): show the spinner, then load. */
+  const run = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    return getBudgetCoaching().then(apply);
+  }, [apply]);
+
   useEffect(() => {
-    run();
-  }, [run]);
+    let cancelled = false;
+    getBudgetCoaching().then((res) => {
+      if (!cancelled) apply(res);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [apply]);
 
   return (
     <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5 space-y-4">

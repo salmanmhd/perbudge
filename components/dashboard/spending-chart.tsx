@@ -17,14 +17,16 @@ interface DailyData {
   label: string;
 }
 
+import type { ChartTooltipProps } from "@/lib/chart-types";
+
 interface SpendingChartProps {
   data: DailyData[];
 }
 
-function CustomTooltip({ active, payload, label }: any) {
+function CustomTooltip({ active, payload }: ChartTooltipProps<DailyData>) {
   if (!active || !payload?.length) return null;
 
-  const amount = payload[0].value;
+  const amount = payload[0].value ?? 0;
   const formattedAmount = new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
@@ -49,7 +51,6 @@ export function SpendingChart({ data }: SpendingChartProps) {
   }
 
   const today = new Date().toISOString().split("T")[0];
-  const maxAmount = Math.max(...data.map((d) => d.amount));
 
   return (
     <div className="w-full h-[220px] md:h-[260px]">

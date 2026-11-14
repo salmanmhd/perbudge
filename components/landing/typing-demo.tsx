@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePrefersReducedMotion } from "@/hooks/use-media-query";
 import {
   Sparkles,
   Check,
@@ -75,21 +76,14 @@ export function TypingDemo() {
   const [i, setI] = useState(0);
   const [typed, setTyped] = useState("");
   const [phase, setPhase] = useState<"typing" | "hold">("typing");
-  const [reduce, setReduce] = useState(false);
-
-  useEffect(() => {
-    setReduce(
-      typeof window !== "undefined" &&
-        !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
-    );
-  }, []);
+  const reduce = usePrefersReducedMotion();
 
   const moment = MOMENTS[i];
   const complete = typed.length === moment.text.length;
 
   useEffect(() => {
     if (reduce) {
-      setTyped(moment.text);
+      // Text is shown in full via `shownText`; just rotate.
       const t = setTimeout(() => setI((p) => (p + 1) % MOMENTS.length), 3200);
       return () => clearTimeout(t);
     }
@@ -114,6 +108,7 @@ export function TypingDemo() {
   }, [typed, phase, i, moment.text, reduce]);
 
   const showCard = complete || reduce;
+  const shownText = reduce ? moment.text : typed;
 
   return (
     <div className="mx-auto w-full max-w-md">
@@ -124,7 +119,7 @@ export function TypingDemo() {
             <Sparkles className="h-4 w-4" />
           </span>
           <p className="min-h-[1.5rem] text-[15px] leading-6 text-zinc-700">
-            {typed || (
+            {shownText || (
               <span className="text-zinc-400">Just tell Perbudge what you spent…</span>
             )}
             {!reduce && !complete && (

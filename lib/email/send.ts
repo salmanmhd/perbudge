@@ -1,3 +1,5 @@
+import { errorMessage } from "@/lib/errors";
+
 /**
  * Minimal email sender using the Resend HTTP API directly (no SDK dependency).
  * Activate by setting RESEND_API_KEY (and optionally RESEND_FROM) in the env.
@@ -43,7 +45,7 @@ export async function sendEmail({
       return { success: false, error: `Resend ${res.status}: ${text}` };
     }
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error?.message || "Email send failed" };
+  } catch (error) {
+    return { success: false, error: errorMessage(error) || "Email send failed" };
   }
 }

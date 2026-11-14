@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { ensureUserInDb } from "@/lib/actions/dashboard-data";
 import Transaction from "@/lib/models/transaction";
-import type { PaymentMode } from "@/lib/models/transaction";
+import type { ITransaction, PaymentMode } from "@/lib/models/transaction";
 import { round2 } from "@/lib/finance";
+import { errorMessage } from "@/lib/errors";
 
 export async function createTransaction(data: {
   amount: number;
@@ -45,9 +46,9 @@ export async function createTransaction(data: {
     revalidatePath("/dashboard/transactions");
 
     return { success: true, data: JSON.parse(JSON.stringify(newTx)) };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Failed to create transaction:", error);
-    return { success: false, error: error.message || "Failed to save transaction." };
+    return { success: false, error: errorMessage(error) || "Failed to save transaction." };
   }
 }
 
@@ -75,7 +76,7 @@ export async function updateTransaction(
       return { success: false, error: "Transaction not found" };
     }
 
-    const updateFields: any = {};
+    const updateFields: Partial<ITransaction> = {};
     if (data.amount !== undefined) updateFields.amount = round2(Number(data.amount));
     if (data.category !== undefined) updateFields.category = data.category;
     if (data.type !== undefined) updateFields.type = data.type;
@@ -91,9 +92,9 @@ export async function updateTransaction(
     revalidatePath("/dashboard/transactions");
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Failed to update transaction:", error);
-    return { success: false, error: error.message || "Failed to update transaction." };
+    return { success: false, error: errorMessage(error) || "Failed to update transaction." };
   }
 }
 

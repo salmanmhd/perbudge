@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useIsClient } from "@/hooks/use-media-query";
 
 /**
  * Scroll-reveal wrapper. Content is visible by default (no JS / headless /
@@ -19,11 +20,10 @@ export function Reveal({
   as?: React.ElementType;
 }) {
   const ref = useRef<HTMLElement | null>(null);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useIsClient();
   const [shown, setShown] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     const el = ref.current;
     if (!el) return;
     const io = new IntersectionObserver(

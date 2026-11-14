@@ -3,6 +3,7 @@ import crypto from "crypto";
 import connectToDatabase from "@/lib/db";
 import User from "@/lib/models/user";
 import { ensureUserInDb } from "@/lib/actions/dashboard-data";
+import { errorMessage } from "@/lib/errors";
 
 export async function GET() {
   try {
@@ -18,10 +19,10 @@ export async function GET() {
       isLinked: Boolean(user?.telegramChatId),
       botUsername: process.env.TELEGRAM_BOT_USERNAME || "perbudge_bot",
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Failed to check telegram link status:", error);
     return NextResponse.json(
-      { error: error.message || "Internal server error" },
+      { error: errorMessage(error) || "Internal server error" },
       { status: 500 }
     );
   }
@@ -49,10 +50,10 @@ export async function POST() {
       url,
       isLinked: false,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Failed to generate telegram link token:", error);
     return NextResponse.json(
-      { error: error.message || "Internal server error" },
+      { error: errorMessage(error) || "Internal server error" },
       { status: 500 }
     );
   }
@@ -75,10 +76,10 @@ export async function DELETE() {
       success: true,
       isLinked: false,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Failed to unlink telegram account:", error);
     return NextResponse.json(
-      { error: error.message || "Internal server error" },
+      { error: errorMessage(error) || "Internal server error" },
       { status: 500 }
     );
   }

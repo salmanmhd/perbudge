@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { ensureUserInDb } from "@/lib/actions/dashboard-data";
-import Loan from "@/lib/models/loan";
+import Loan, { type ILoan } from "@/lib/models/loan";
 import {
   loanOutstanding,
   loanRemainingEmis,
@@ -10,6 +10,7 @@ import {
   nextDueDate,
   round2,
 } from "@/lib/finance";
+import { errorMessage } from "@/lib/errors";
 
 export interface LoanView {
   _id: string;
@@ -31,7 +32,7 @@ export interface LoanView {
   nextDueISO: string;
 }
 
-function toView(loan: any): LoanView {
+function toView(loan: ILoan & { _id: unknown }): LoanView {
   return {
     _id: String(loan._id),
     name: loan.name,
@@ -60,7 +61,7 @@ export async function getLoans(): Promise<LoanView[]> {
     .sort({ status: 1, createdAt: -1 })
     .lean();
 
-  return (loans as any[]).map(toView);
+  return loans.map(toView);
 }
 
 /** Total EMI outflow per month across all active loans. */
@@ -94,7 +95,22 @@ export interface LoanInput {
  * paise; counts/days are floored to integers so bad client input can't reach
  * Mongoose (which otherwise fails with a cryptic ValidationError).
  */
-function normalizeLoan(data: LoanInput): { value?: any; error?: string } {
+interface NormalizedLoan {
+  name: string;
+  lender?: string;
+  principal: number;
+  emiAmount: number;
+  interestRate?: number;
+  tenureMonths: number;
+  emisPaid: number;
+  dueDay: number;
+  notes?: string;
+  startDate?: Date;
+}
+
+function normalizeLoan(
+  data: LoanInput
+): { value: NormalizedLoan; error?: undefined } | { value?: undefined; error: string } {
   const name = (data.name || "").trim();
   if (!name) return { error: "Give the loan a name." };
 
@@ -143,8 +159,9 @@ export async function createLoan(data: LoanInput) {
   const userObjectId = await ensureUserInDb();
   if (!userObjectId) return { success: false, error: "Unauthorized" };
 
-  const { value, error } = normalizeLoan(data);
-  if (error) return { success: false, error };
+  const norm = normalizeLoan(data);
+  if (norm.error !== undefined) return { success: false, error: norm.error };
+  const value = norm.value;
 
   try {
     await Loan.create({
@@ -156,9 +173,9 @@ export async function createLoan(data: LoanInput) {
     revalidatePath("/dashboard/loans");
     revalidatePath("/dashboard");
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error("createLoan error:", error);
-    return { success: false, error: error.message || "Failed to add loan." };
+    return { success: false, error: errorMessage(error) || "Failed to add loan." };
   }
 }
 
@@ -167,8 +184,9 @@ export async function updateLoan(id: string, data: LoanInput) {
   const userObjectId = await ensureUserInDb();
   if (!userObjectId) return { success: false, error: "Unauthorized" };
 
-  const { value, error } = normalizeLoan(data);
-  if (error) return { success: false, error };
+  const norm = normalizeLoan(data);
+  if (norm.error !== undefined) return { success: false, error: norm.error };
+  const value = norm.value;
 
   try {
     const loan = await Loan.findOne({ _id: id, userId: userObjectId });
@@ -190,9 +208,9 @@ export async function updateLoan(id: string, data: LoanInput) {
     revalidatePath("/dashboard/loans");
     revalidatePath("/dashboard");
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error("updateLoan error:", error);
-    return { success: false, error: error.message || "Failed to update loan." };
+    return { success: false, error: errorMessage(error) || "Failed to update loan." };
   }
 }
 

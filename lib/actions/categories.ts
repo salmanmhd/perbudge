@@ -2,71 +2,23 @@
 
 import { revalidatePath } from "next/cache";
 import mongoose from "mongoose";
-import connectToDatabase from "@/lib/db";
 import { ensureUserInDb } from "@/lib/actions/dashboard-data";
 import UserCategory from "@/lib/models/category";
 import Transaction from "@/lib/models/transaction";
 import User from "@/lib/models/user";
+import { CATEGORIES, FALLBACK_CATEGORY_ID, type Category } from "@/lib/categories";
 import {
-  CATEGORIES,
-  FALLBACK_CATEGORY_ID,
-  slugifyCategory,
-  type Category,
-  type CategoryKind,
-} from "@/lib/categories";
+  createCategoryForUserId,
+  escapeRegex,
+  getCategoriesForUserId,
+  seedDefaults,
+  toView,
+  validateCategoryInput,
+  type CategoryInput,
+  type CategoryResult,
+} from "@/lib/categories-store";
 
-type CategoryDoc = { slug: string; label: string; icon: string; color: string; kind: CategoryKind; isDefault: boolean };
-
-function toView(doc: CategoryDoc): Category {
-  return {
-    id: doc.slug,
-    label: doc.label,
-    icon: doc.icon,
-    color: doc.color,
-    kind: doc.kind,
-    isDefault: doc.isDefault,
-  };
-}
-
-function escapeRegex(s: string) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-/** Seeds the defaults for a user who has no categories yet. */
-async function seedDefaults(userObjectId: mongoose.Types.ObjectId) {
-  const ops = CATEGORIES.map((c, i) => ({
-    updateOne: {
-      filter: { userId: userObjectId, slug: c.id },
-      update: {
-        $setOnInsert: {
-          userId: userObjectId,
-          slug: c.id,
-          label: c.label,
-          icon: c.icon,
-          color: c.color,
-          kind: c.kind,
-          order: i,
-          isDefault: true,
-        },
-      },
-      upsert: true,
-    },
-  }));
-  await UserCategory.bulkWrite(ops, { ordered: false });
-}
-
-/** Categories for a user by ObjectId (no auth; for webhooks/server code). */
-export async function getCategoriesForUserId(
-  userObjectId: mongoose.Types.ObjectId
-): Promise<Category[]> {
-  await connectToDatabase();
-  let docs: CategoryDoc[] = await UserCategory.find({ userId: userObjectId }).sort({ order: 1, createdAt: 1 }).lean<CategoryDoc[]>();
-  if (docs.length === 0) {
-    await seedDefaults(userObjectId);
-    docs = await UserCategory.find({ userId: userObjectId }).sort({ order: 1, createdAt: 1 }).lean<CategoryDoc[]>();
-  }
-  return docs.map(toView);
-}
+export type { CategoryInput };
 
 export async function getUserCategories(): Promise<Category[]> {
   const userObjectId = await ensureUserInDb();
@@ -74,22 +26,7 @@ export async function getUserCategories(): Promise<Category[]> {
   return getCategoriesForUserId(userObjectId);
 }
 
-export interface CategoryInput {
-  label: string;
-  icon: string;
-  color: string;
-  kind: CategoryKind;
-}
-
-type Result = { success: true; category?: Category } | { success: false; error: string };
-
-function validate(input: CategoryInput): string | null {
-  const label = input.label?.trim();
-  if (!label) return "Name is required";
-  if (label.length > 30) return "Name must be 30 characters or fewer";
-  if (!["expense", "income", "both"].includes(input.kind)) return "Invalid type";
-  return null;
-}
+type Result = CategoryResult;
 
 function revalidateAll() {
   revalidatePath("/dashboard", "layout");
@@ -98,38 +35,15 @@ function revalidateAll() {
 export async function createCategory(input: CategoryInput): Promise<Result> {
   const userObjectId = await ensureUserInDb();
   if (!userObjectId) return { success: false, error: "Unauthorized" };
-  const err = validate(input);
-  if (err) return { success: false, error: err };
-
-  await getCategoriesForUserId(userObjectId); // ensure defaults exist
-  const label = input.label.trim();
-  const slug = slugifyCategory(label);
-
-  const clash = await UserCategory.findOne({
-    userId: userObjectId,
-    $or: [{ slug }, { label: new RegExp(`^${escapeRegex(label)}$`, "i") }],
-  });
-  if (clash) return { success: false, error: "A category with that name already exists" };
-
-  const last = await UserCategory.findOne({ userId: userObjectId }).sort({ order: -1 }).lean<{ order?: number; label?: string }>();
-  const doc = await UserCategory.create({
-    userId: userObjectId,
-    slug,
-    label,
-    icon: input.icon || "Receipt",
-    color: input.color,
-    kind: input.kind,
-    order: (last?.order ?? 0) + 1,
-    isDefault: false,
-  });
-  revalidateAll();
-  return { success: true, category: toView(doc) };
+  const res = await createCategoryForUserId(userObjectId, input);
+  if (res.success) revalidateAll();
+  return res;
 }
 
 export async function updateCategory(id: string, input: CategoryInput): Promise<Result> {
   const userObjectId = await ensureUserInDb();
   if (!userObjectId) return { success: false, error: "Unauthorized" };
-  const err = validate(input);
+  const err = validateCategoryInput(input);
   if (err) return { success: false, error: err };
 
   const existing = await UserCategory.findOne({ userId: userObjectId, slug: id });

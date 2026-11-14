@@ -141,6 +141,14 @@ function FormattedMessage({ content }: { content: string }) {
   );
 }
 
+function newId(prefix: string) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+function nowStamp() {
+  return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
 export function AiChat() {
   const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
   const [input, setInput] = useState("");
@@ -164,14 +172,15 @@ export function AiChat() {
   }, [input]);
 
   const handleSend = async (textToSend?: string) => {
+    const stamp = nowStamp();
     const query = (textToSend || input).trim();
     if (!query || isLoading) return;
 
     const userMessage: Message = {
-      id: `u-${Date.now()}`,
+      id: newId("u"),
       role: "user",
       content: query,
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      timestamp: stamp,
     };
 
     const updated = [...messages, userMessage];
@@ -194,17 +203,17 @@ export function AiChat() {
         setMessages([
           ...updated,
           {
-            id: `a-${Date.now()}`,
+            id: newId("a"),
             role: "assistant",
             content: result.text,
-            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            timestamp: stamp,
           },
         ]);
       } else {
         setMessages([
           ...updated,
           {
-            id: `err-${Date.now()}`,
+            id: newId("err"),
             role: "assistant",
             content: result.text || "Sorry, I hit an error analyzing your data. Please try again.",
             timestamp: "Error",
@@ -215,7 +224,7 @@ export function AiChat() {
       setMessages([
         ...updated,
         {
-          id: `err-${Date.now()}`,
+          id: newId("err"),
           role: "assistant",
           content: "Network issue. Please try again in a moment.",
           timestamp: "Error",

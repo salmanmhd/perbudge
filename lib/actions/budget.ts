@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type mongoose from "mongoose";
 import { auth } from "@clerk/nextjs/server";
 import connectToDatabase from "@/lib/db";
 import { ensureUserInDb } from "@/lib/actions/dashboard-data";
@@ -8,7 +9,7 @@ import { getMonthlyEmiTotal } from "@/lib/actions/loans";
 import User from "@/lib/models/user";
 import Transaction from "@/lib/models/transaction";
 import { bucketForCategory, round2, type BudgetBucket } from "@/lib/finance";
-import type { ICategoryBudget, BudgetMethod } from "@/lib/models/user";
+import type { ICategoryBudget, BudgetMethod, IUser } from "@/lib/models/user";
 
 export interface CategoryBudgetView {
   category: string;
@@ -50,7 +51,7 @@ export interface BudgetPlan {
   safeToSpendLeft: number;
 }
 
-async function monthCategorySpend(userObjectId: any): Promise<Record<string, number>> {
+async function monthCategorySpend(userObjectId: mongoose.Types.ObjectId): Promise<Record<string, number>> {
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const agg = await Transaction.aggregate([
@@ -64,7 +65,11 @@ async function monthCategorySpend(userObjectId: any): Promise<Record<string, num
     { $group: { _id: "$category", total: { $sum: "$amount" } } },
   ]);
   const map: Record<string, number> = {};
-  for (const r of agg) map[String(r._id).toLowerCase()] = r.total;
+  // Sum case variants ("food" from old Telegram entries + "Food").
+  for (const r of agg) {
+    const key = String(r._id).toLowerCase();
+    map[key] = (map[key] || 0) + r.total;
+  }
   return map;
 }
 
@@ -94,7 +99,7 @@ export async function getBudgetPlan(): Promise<BudgetPlan> {
   if (!userObjectId || !userId) return empty;
 
   const [user, spendByCategory, monthlyEmiTotal] = await Promise.all([
-    User.findOne({ clerkId: userId }).lean() as Promise<any>,
+    User.findOne({ clerkId: userId }).lean(),
     monthCategorySpend(userObjectId),
     getMonthlyEmiTotal(),
   ]);
@@ -165,7 +170,7 @@ export async function updateBudgetPlan(data: {
   if (!userId) return { success: false, error: "Unauthorized" };
 
   await connectToDatabase();
-  const update: any = {};
+  const update: Partial<IUser> = {};
   if (data.monthlyIncome !== undefined) update.monthlyIncome = round2(Number(data.monthlyIncome) || 0);
   if (data.budgetMethod !== undefined) update.budgetMethod = data.budgetMethod;
   if (data.savingsTargetPct !== undefined) update.savingsTargetPct = data.savingsTargetPct;

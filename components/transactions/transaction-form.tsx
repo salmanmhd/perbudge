@@ -17,14 +17,20 @@ const formSchema = z.object({
   isRecurring: z.boolean().default(false),
 });
 
+type FormInput = z.input<typeof formSchema>;
+type FormData = z.output<typeof formSchema>;
+
+/** Prefill, e.g. from the AI parser. */
+export type TransactionFormInitial = Partial<FormData> | null;
+
 interface TransactionFormProps {
-  initialData: any;
+  initialData: TransactionFormInitial;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
 export function TransactionForm({ initialData, onSuccess, onCancel }: TransactionFormProps) {
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormInput, unknown, FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       amount: initialData?.amount || 0,
@@ -35,7 +41,7 @@ export function TransactionForm({ initialData, onSuccess, onCancel }: Transactio
     },
   });
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: FormData) => {
     try {
       const result = await createTransaction(data);
       if (result.success) {

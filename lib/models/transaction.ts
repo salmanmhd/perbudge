@@ -36,6 +36,10 @@ const TransactionSchema = new Schema<ITransaction>(
   { timestamps: true }
 );
 
-const Transaction = models.Transaction || mongoose.model<ITransaction>("Transaction", TransactionSchema);
+// Nearly every query is "this user's transactions in a date range".
+TransactionSchema.index({ userId: 1, date: -1 });
+TransactionSchema.index({ userId: 1, type: 1, date: -1 });
+
+const Transaction = (models.Transaction as mongoose.Model<ITransaction> | undefined) ?? mongoose.model<ITransaction>("Transaction", TransactionSchema);
 
 export default Transaction;

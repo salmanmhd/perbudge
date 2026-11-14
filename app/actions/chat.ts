@@ -1,6 +1,6 @@
 "use server";
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { Type, type Content } from "@google/genai";
 import { buildAiContext } from "@/lib/actions/finance-snapshot";
 import { generateDigestFromContext } from "@/lib/ai/digest";
 import { aiErrorMessage } from "@/lib/ai/errors";
@@ -33,7 +33,7 @@ Rules:
   }));
 
   try {
-    const contents: any[] = [
+    const contents: Content[] = [
       { role: "user", parts: [{ text: systemPrompt }] },
       {
         role: "model",
@@ -110,7 +110,7 @@ ${context}`,
     }
     const issues = JSON.parse(result.text) as FinancialIssue[];
     return { success: true, issues };
-  } catch (error: any) {
+  } catch (error) {
     console.error("analyzeFinances error:", error);
     return { success: false, issues: [], error: aiErrorMessage(error, "Could not analyse finances right now.") };
   }

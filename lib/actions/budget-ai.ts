@@ -1,6 +1,6 @@
 "use server";
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { Type } from "@google/genai";
 import { getBudgetPlan } from "@/lib/actions/budget";
 import { formatINR } from "@/lib/finance";
 import { aiErrorMessage } from "@/lib/ai/errors";
@@ -114,7 +114,7 @@ ${lines.join("\n")}`,
     if (!result.success || !result.text) return { success: false, onTrack, tips: [], error: result.error || "No response" };
     const tips = JSON.parse(result.text) as BudgetTip[];
     return { success: true, onTrack, tips };
-  } catch (error: any) {
+  } catch (error) {
     console.error("getBudgetCoaching error:", error);
     return { success: false, onTrack, tips: [], error: aiErrorMessage(error, "Could not generate coaching right now.") };
   }

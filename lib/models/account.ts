@@ -45,6 +45,6 @@ const AccountSchema = new Schema<IAccount>(
 );
 
 const Account =
-  models.Account || mongoose.model<IAccount>("Account", AccountSchema);
+  (models.Account as mongoose.Model<IAccount> | undefined) ?? mongoose.model<IAccount>("Account", AccountSchema);
 
 export default Account;

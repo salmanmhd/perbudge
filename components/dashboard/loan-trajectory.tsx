@@ -10,13 +10,14 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { formatINR, type LoanTrajectory } from "@/lib/finance";
+import { formatINR, type LoanTrajectory, type TrajectoryPoint } from "@/lib/finance";
+import type { ChartTooltipProps } from "@/lib/chart-types";
 import { CalendarCheck, TrendingDown, Wallet, PartyPopper } from "lucide-react";
 
 const compact = (n: number) =>
   n >= 100000 ? `${(n / 100000).toFixed(1)}L` : n >= 1000 ? `${Math.round(n / 1000)}k` : `${n}`;
 
-function ChartTooltip({ active, payload }: any) {
+function ChartTooltip({ active, payload }: ChartTooltipProps<TrajectoryPoint>) {
   if (!active || !payload?.length) return null;
   const p = payload[0]?.payload;
   return (

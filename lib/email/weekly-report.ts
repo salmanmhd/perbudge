@@ -9,7 +9,7 @@ function digestToHtml(md: string): string {
   const lines = md.split("\n").map((l) => l.trim()).filter(Boolean);
   const out: string[] = [];
   let inList = false;
-  for (let raw of lines) {
+  for (const raw of lines) {
     let line = esc(raw).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
     const isBullet = /^[-*•]\s+/.test(raw);
     if (isBullet) {

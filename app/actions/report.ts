@@ -19,10 +19,10 @@ export async function sendTestReport() {
   const { userId } = await auth();
   if (!userObjectId || !userId) return { success: false, error: "Unauthorized" };
 
-  const user: any = await User.findOne({ clerkId: userId }).lean();
+  const user = await User.findOne({ clerkId: userId }).lean();
   if (!user?.email) return { success: false, error: "No email on file." };
 
-  const snapshot = await computeSnapshotForUser(userObjectId as any, user);
+  const snapshot = await computeSnapshotForUser(userObjectId, user);
   if (snapshot.recentCount === 0) {
     return { success: false, error: "Log some transactions first." };
   }
@@ -56,6 +56,6 @@ export async function getWeeklyReportEnabled(): Promise<boolean> {
   const { userId } = await auth();
   if (!userId) return true;
   await connectToDatabase();
-  const user: any = await User.findOne({ clerkId: userId }).lean();
+  const user = await User.findOne({ clerkId: userId }).lean();
   return user?.weeklyReportEnabled ?? true;
 }

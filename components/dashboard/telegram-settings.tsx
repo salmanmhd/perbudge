@@ -18,6 +18,7 @@ import {
   RefreshCw,
   Sparkles,
 } from "lucide-react";
+import { errorMessage } from "@/lib/errors";
 
 interface TelegramSettingsProps {
   initialLinked: boolean;
@@ -49,10 +50,10 @@ export function TelegramSettings({ initialLinked }: TelegramSettingsProps) {
         ok: true,
         text: "Opening Telegram... Tap 'Start' in the bot to connect your account.",
       });
-    } catch (err: any) {
+    } catch (err) {
       setMessage({
         ok: false,
-        text: err.message || "Failed to connect to Telegram.",
+        text: errorMessage(err) || "Failed to connect to Telegram.",
       });
     } finally {
       setConnecting(false);
@@ -80,10 +81,10 @@ export function TelegramSettings({ initialLinked }: TelegramSettingsProps) {
         ok: true,
         text: "Your Telegram account has been disconnected.",
       });
-    } catch (err: any) {
+    } catch (err) {
       setMessage({
         ok: false,
-        text: err.message || "Failed to disconnect Telegram.",
+        text: errorMessage(err) || "Failed to disconnect Telegram.",
       });
     } finally {
       setUnlinking(false);
@@ -110,7 +111,7 @@ export function TelegramSettings({ initialLinked }: TelegramSettingsProps) {
           });
         }
       }
-    } catch (err: any) {
+    } catch {
       setMessage({
         ok: false,
         text: "Failed to check status. Please try again.",
