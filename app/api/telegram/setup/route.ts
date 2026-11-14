@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { setTelegramWebhook, getTelegramWebhookInfo } from "@/lib/telegram";
+import { errorMessage } from "@/lib/errors";
 
 export const dynamic = "force-dynamic";
 
@@ -21,15 +22,16 @@ export async function GET(req: NextRequest) {
 
     // Determine webhook URL
     const customUrl = searchParams.get("url");
-    let webhookBase =
+    const webhookBase =
       customUrl ||
       process.env.NEXT_PUBLIC_APP_URL ||
       `${req.headers.get("x-forwarded-proto") || "https"}://${req.headers.get("host")}`;
 
-    // Ensure it ends with /api/telegram/webhook
-    const webhookUrl = webhookBase.endsWith("/api/telegram/webhook")
-      ? webhookBase
-      : `${webhookBase.replace(/\/$/, "")}/api/telegram/webhook`;
+    // Ensure clean single slash URL
+    const cleanBase = webhookBase.replace(/\/+$/, "");
+    const webhookUrl = cleanBase.endsWith("/api/telegram/webhook")
+      ? cleanBase
+      : `${cleanBase}/api/telegram/webhook`;
 
     const result = await setTelegramWebhook(webhookUrl, configuredSecret);
 
@@ -38,10 +40,10 @@ export async function GET(req: NextRequest) {
       webhookUrl,
       telegramResponse: result,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Webhook setup error:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to setup webhook" },
+      { error: errorMessage(error) || "Failed to setup webhook" },
       { status: 500 }
     );
   }

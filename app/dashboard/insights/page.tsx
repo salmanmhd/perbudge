@@ -1,10 +1,15 @@
 import { getFinancialPosition } from "@/lib/actions/insights";
+import { getSpendingInsights } from "@/lib/actions/spending-insights";
+import { SpendingInsights } from "@/components/dashboard/spending-insights";
 import { InsightsOverview } from "@/components/dashboard/insights-overview";
 import { FinancialHealth } from "@/components/dashboard/financial-health";
 import { TrendingUp } from "lucide-react";
 
 export default async function InsightsPage() {
-  const position = await getFinancialPosition();
+  const [position, spendingInsights] = await Promise.all([
+    getFinancialPosition(),
+    getSpendingInsights(),
+  ]);
 
   return (
     <div className="flex flex-col gap-6 p-4 pt-6 md:p-8 max-w-[900px] mx-auto w-full">
@@ -24,6 +29,9 @@ export default async function InsightsPage() {
         <>
           {/* Computed position + vitals — grounded, not guesswork */}
           <InsightsOverview position={position} />
+
+          {/* Rule-based observations from transaction history */}
+          <SpendingInsights insights={spendingInsights} />
 
           {/* AI findings — prioritised problems, risks, and wins */}
           <div className="pt-2">

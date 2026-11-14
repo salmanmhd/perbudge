@@ -133,6 +133,7 @@ export const BOT_COMMANDS = [
   { command: "last", description: "Last 5 expenses" },
   { command: "month", description: "This month's total" },
   { command: "analysis", description: "Monthly breakdown + AI insight" },
+  { command: "insights", description: "Spending insights (/insights off to mute daily)" },
   { command: "help", description: "How to log expenses" },
 ];
 

@@ -13,6 +13,7 @@ import {
 } from "@/lib/categories";
 import { createCategoryForUserId, getCategoriesForUserId } from "@/lib/categories-store";
 import { auditFinancialsWithAi } from "@/lib/ai-audit";
+import { computeSpendingInsights, formatInsightsForTelegram } from "@/lib/spending-insights";
 import {
   sendTelegramMessage,
   editTelegramMessageText,
@@ -616,6 +617,24 @@ export async function POST(req: NextRequest) {
       }
 
       await sendTelegramMessage(chatId, reply, { parse_mode: "Markdown" });
+      return NextResponse.json({ ok: true });
+    }
+
+    if (command === "/insights") {
+      const arg = text.split(/\s+/)[1]?.toLowerCase();
+      if (arg === "off" || arg === "on") {
+        const on = arg === "on";
+        await User.updateOne({ _id: user._id }, { $set: { telegramDailyInsights: on } });
+        await sendTelegramMessage(
+          chatId,
+          on
+            ? "🔔 Daily insights on. You'll get them around 9 PM."
+            : "🔕 Daily insights muted. Send /insights on to turn them back on."
+        );
+        return NextResponse.json({ ok: true });
+      }
+      const insights = await computeSpendingInsights(user._id);
+      await sendTelegramMessage(chatId, formatInsightsForTelegram(insights, "Your insights"));
       return NextResponse.json({ ok: true });
     }
 

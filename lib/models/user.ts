@@ -24,6 +24,8 @@ export interface IUser extends Document {
   financialGoals?: string;
   /** Whether the weekly AI email report is enabled */
   weeklyReportEnabled?: boolean;
+  /** Daily spending insights pushed to the linked Telegram chat */
+  telegramDailyInsights?: boolean;
   currency: string;
   telegramChatId?: number;
   telegramLinkToken?: string;
@@ -58,6 +60,7 @@ const UserSchema = new Schema<IUser>(
     savingsTargetPct: { type: Number, default: 20 },
     financialGoals: { type: String },
     weeklyReportEnabled: { type: Boolean, default: true },
+    telegramDailyInsights: { type: Boolean, default: true },
     currency: { type: String, default: "INR" },
     telegramChatId: { type: Number, unique: true, sparse: true },
     telegramLinkToken: { type: String, unique: true, sparse: true },

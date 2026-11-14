@@ -9,6 +9,8 @@ import {
 import { getMonthlyEmiTotal } from "@/lib/actions/loans";
 import { getAccounts } from "@/lib/actions/accounts";
 import { getLedger } from "@/lib/actions/ledger";
+import { getSpendingInsights } from "@/lib/actions/spending-insights";
+import { SpendingInsights } from "@/components/dashboard/spending-insights";
 import { SummaryCards } from "@/components/dashboard/summary-cards";
 import { RecentTransactions } from "@/components/dashboard/recent-transactions";
 import { TodayHero } from "@/components/dashboard/today-hero";
@@ -32,6 +34,7 @@ export default async function DashboardPage() {
     accounts,
     personalLedger,
     clientLedger,
+    spendingInsights,
   ] = await Promise.all([
     getSummaryMetrics(),
     getRecentTransactions(5),
@@ -43,6 +46,7 @@ export default async function DashboardPage() {
     getAccounts(),
     getLedger("personal"),
     getLedger("client"),
+    getSpendingInsights(),
   ]);
 
   const cardsDue = accounts
@@ -72,6 +76,11 @@ export default async function DashboardPage() {
         receivable={receivable}
         payable={payable}
       />
+
+      {/* Top spending insights */}
+      {spendingInsights.length > 0 && (
+        <SpendingInsights insights={spendingInsights} limit={3} />
+      )}
 
       {/* Charts Row */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
