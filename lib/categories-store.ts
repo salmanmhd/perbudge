@@ -4,8 +4,11 @@
 import mongoose from "mongoose";
 import connectToDatabase from "@/lib/db";
 import UserCategory from "@/lib/models/category";
+import Transaction from "@/lib/models/transaction";
+import User from "@/lib/models/user";
 import {
   CATEGORIES,
+  FALLBACK_CATEGORY_ID,
   slugifyCategory,
   type Category,
   type CategoryKind,
@@ -156,4 +159,102 @@ export async function createCategoryForUserId(
     isDefault: false,
   });
   return { success: true, category: toView(doc) };
+}
+
+/** Partial update: omitted fields keep their current value. */
+export async function updateCategoryForUserId(
+  userObjectId: mongoose.Types.ObjectId,
+  slug: string,
+  patch: Partial<CategoryInput>
+): Promise<CategoryResult> {
+  await connectToDatabase();
+  const existing = await UserCategory.findOne({ userId: userObjectId, slug });
+  if (!existing) return { success: false, error: "Category not found" };
+
+  const input: CategoryInput = {
+    label: patch.label ?? existing.label,
+    icon: patch.icon || existing.icon,
+    color: patch.color || existing.color,
+    kind: patch.kind ?? existing.kind,
+  };
+  const err = validateCategoryInput(input);
+  if (err) return { success: false, error: err };
+
+  const label = input.label.trim();
+  const oldLabel: string = existing.label;
+  if (label.toLowerCase() !== oldLabel.toLowerCase()) {
+    const clash = await UserCategory.findOne({
+      userId: userObjectId,
+      _id: { $ne: existing._id },
+      label: new RegExp(`^${escapeRegex(label)}$`, "i"),
+    });
+    if (clash) return { success: false, error: "A category with that name already exists" };
+  }
+  // Compute reference names before the label changes.
+  const oldRefs = categoryRefNames({ label: oldLabel, slug: existing.slug });
+
+  existing.label = label;
+  existing.icon = input.icon;
+  existing.color = input.color;
+  // The fallback must stay usable for both types.
+  existing.kind = existing.slug === FALLBACK_CATEGORY_ID ? "both" : input.kind;
+  await existing.save();
+
+  if (label !== oldLabel) await renameCategoryReferences(userObjectId, oldRefs, label);
+  return { success: true, category: toView(existing) };
+}
+
+/** Deletes a category, moving its transactions to Others and dropping its budget. */
+export async function deleteCategoryForUserId(
+  userObjectId: mongoose.Types.ObjectId,
+  slug: string
+): Promise<CategoryResult> {
+  if (slug === FALLBACK_CATEGORY_ID) {
+    return { success: false, error: "The Others category can't be deleted" };
+  }
+  await connectToDatabase();
+  const existing = await UserCategory.findOne({ userId: userObjectId, slug });
+  if (!existing) return { success: false, error: "Category not found" };
+
+  const fallback = await UserCategory.findOne({ userId: userObjectId, slug: FALLBACK_CATEGORY_ID }).lean<{ label?: string }>();
+  const fallbackLabel = fallback?.label || "Others";
+  const match = namesRegex(categoryRefNames(existing));
+
+  await Transaction.updateMany(
+    { userId: userObjectId, category: { $in: match } },
+    { $set: { category: fallbackLabel } }
+  );
+  await User.updateOne(
+    { _id: userObjectId },
+    { $pull: { categoryBudgets: { category: { $in: match } } } }
+  );
+  await existing.deleteOne();
+  return { success: true, category: toView(existing) };
+}
+
+function namesRegex(names: string[]) {
+  return [...new Set(names)].map((n) => new RegExp(`^${escapeRegex(n)}$`, "i"));
+}
+
+async function renameCategoryReferences(
+  userObjectId: mongoose.Types.ObjectId,
+  oldNames: string[],
+  newLabel: string
+) {
+  const match = namesRegex(oldNames);
+  await Transaction.updateMany(
+    { userId: userObjectId, category: { $in: match } },
+    { $set: { category: newLabel } }
+  );
+  const user = await User.findById(userObjectId);
+  if (user?.categoryBudgets?.length) {
+    let changed = false;
+    for (const cb of user.categoryBudgets) {
+      if (match.some((r) => r.test(cb.category))) {
+        cb.category = newLabel.toLowerCase();
+        changed = true;
+      }
+    }
+    if (changed) await user.save();
+  }
 }

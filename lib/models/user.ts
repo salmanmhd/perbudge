@@ -31,6 +31,8 @@ export interface IUser extends Document {
   telegramLinkToken?: string;
   /** Last bot confirmation that still carries inline buttons. */
   telegramLastActionMsgId?: number;
+  /** Bot is waiting for a typed reply (e.g. a category name). */
+  telegramPending?: { action: "cat_add" | "cat_rename"; slug?: string; at: Date };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -65,6 +67,11 @@ const UserSchema = new Schema<IUser>(
     telegramChatId: { type: Number, unique: true, sparse: true },
     telegramLinkToken: { type: String, unique: true, sparse: true },
     telegramLastActionMsgId: { type: Number },
+    telegramPending: {
+      action: { type: String, enum: ["cat_add", "cat_rename"] },
+      slug: { type: String },
+      at: { type: Date },
+    },
   },
   { timestamps: true }
 );

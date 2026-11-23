@@ -13,6 +13,11 @@ import {
 } from "@/lib/categories";
 import { createCategoryForUserId, getCategoriesForUserId } from "@/lib/categories-store";
 import { auditFinancialsWithAi } from "@/lib/ai-audit";
+import {
+  handleCategoryCallback,
+  handleCategoryCommand,
+  handlePendingCategoryReply,
+} from "@/lib/telegram-categories";
 import { computeSpendingInsights, formatInsightsForTelegram } from "@/lib/spending-insights";
 import {
   sendTelegramMessage,
@@ -252,6 +257,11 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
+      if (data.startsWith("cm:")) {
+        await handleCategoryCallback(user, chatId, messageId, callbackQueryId, data);
+        return NextResponse.json({ ok: true });
+      }
+
       const [action, expenseId, value] = data.split(":");
 
       if (!expenseId || !mongoose.Types.ObjectId.isValid(expenseId)) {
@@ -454,6 +464,15 @@ export async function POST(req: NextRequest) {
     // -------------------------------------------------------------------------
     const command = text.split(/\s+/)[0].toLowerCase().replace(/@\w+$/, "");
 
+    if (await handleCategoryCommand(user, chatId, command, text)) {
+      return NextResponse.json({ ok: true });
+    }
+
+    // Answer to an Add / Rename prompt from the category manager.
+    if (!command.startsWith("/") && (await handlePendingCategoryReply(user, chatId, text))) {
+      return NextResponse.json({ ok: true });
+    }
+
     if (command === "/help") {
       const helpText =
         `💡 *Perbudge Telegram Bot Guide*\n\n` +
@@ -469,6 +488,8 @@ export async function POST(req: NextRequest) {
         `• /last — View your last 5 logged expenses\n` +
         `• /analysis — Monthly breakdown & top categories\n` +
         `• /month — Quick total spend for this month\n` +
+        `• /insights — Spending insights (/insights off mutes the daily one)\n` +
+        `• /categories — Add, rename, retype or delete categories\n` +
         `• /help — Show this help message\n\n` +
         `*Shortcuts:*\n` +
         `• \`#<category>\` — Category tag (#food, #bills, #travel, etc.)\n` +
