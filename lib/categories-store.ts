@@ -86,6 +86,34 @@ export async function getCategoriesForUserId(
   return docs.map(toView);
 }
 
+/** `base`, or `base-2`, `base-3`… if a (possibly renamed) category holds it. */
+async function uniqueSlug(userObjectId: mongoose.Types.ObjectId, base: string) {
+  const root = base || "category";
+  const taken = new Set(
+    (
+      await UserCategory.find({
+        userId: userObjectId,
+        slug: new RegExp(`^${escapeRegex(root)}(-\d+)?$`),
+      })
+        .select("slug")
+        .lean<{ slug: string }[]>()
+    ).map((d) => d.slug)
+  );
+  if (!taken.has(root)) return root;
+  let i = 2;
+  while (taken.has(`${root}-${i}`)) i++;
+  return `${root}-${i}`;
+}
+
+/**
+ * Names that a category's transactions/budgets may be stored under: its label,
+ * plus its slug only while the slug still matches the label (legacy lowercase
+ * rows). A renamed category's old slug may now be another category's name.
+ */
+export function categoryRefNames(doc: { label: string; slug: string }) {
+  return slugifyCategory(doc.label) === doc.slug ? [doc.label, doc.slug] : [doc.label];
+}
+
 export function validateCategoryInput(input: CategoryInput): string | null {
   const label = input.label?.trim();
   if (!label) return "Name is required";
@@ -103,13 +131,16 @@ export async function createCategoryForUserId(
 
   await getCategoriesForUserId(userObjectId); // ensure defaults exist
   const label = input.label.trim();
-  const slug = slugifyCategory(label);
 
+  // Only the visible name has to be unique. The slug is an internal id, and a
+  // renamed category keeps its old one (Transport renamed to Grocery still has
+  // slug "transport"), so pick a free slug instead of rejecting.
   const clash = await UserCategory.findOne({
     userId: userObjectId,
-    $or: [{ slug }, { label: new RegExp(`^${escapeRegex(label)}$`, "i") }],
+    label: new RegExp(`^${escapeRegex(label)}$`, "i"),
   });
   if (clash) return { success: false, error: "A category with that name already exists" };
+  const slug = await uniqueSlug(userObjectId, slugifyCategory(label));
 
   const last = await UserCategory.findOne({ userId: userObjectId })
     .sort({ order: -1 })

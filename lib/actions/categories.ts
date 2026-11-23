@@ -16,6 +16,7 @@ import {
   validateCategoryInput,
   type CategoryInput,
   type CategoryResult,
+  categoryRefNames,
 } from "@/lib/categories-store";
 
 export type { CategoryInput };
@@ -69,7 +70,7 @@ export async function updateCategory(id: string, input: CategoryInput): Promise<
   await existing.save();
 
   if (label !== oldLabel) {
-    await renameCategoryReferences(userObjectId, [oldLabel, existing.slug], label);
+    await renameCategoryReferences(userObjectId, categoryRefNames({ label: oldLabel, slug: existing.slug }), label);
   }
   revalidateAll();
   return { success: true, category: toView(existing) };
@@ -89,12 +90,12 @@ export async function deleteCategory(id: string): Promise<Result> {
 
   // Move existing transactions to the fallback, drop the budget limit.
   await Transaction.updateMany(
-    { userId: userObjectId, category: { $in: namesRegex([existing.label, existing.slug]) } },
+    { userId: userObjectId, category: { $in: namesRegex(categoryRefNames(existing)) } },
     { $set: { category: fallbackLabel } }
   );
   await User.updateOne(
     { _id: userObjectId },
-    { $pull: { categoryBudgets: { category: { $in: namesRegex([existing.label, existing.slug]) } } } }
+    { $pull: { categoryBudgets: { category: { $in: namesRegex(categoryRefNames(existing)) } } } }
   );
   await existing.deleteOne();
   revalidateAll();
