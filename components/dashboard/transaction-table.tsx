@@ -14,6 +14,7 @@ import { Trash2, ChevronLeft, ChevronRight, CreditCard, Banknote } from "lucide-
 import { CategoryIcon } from "@/components/category-icon";
 import { deleteTransaction } from "@/lib/actions/transaction-list";
 import { useRouter } from "next/navigation";
+import { EditTransactionDialog } from "@/components/transactions/edit-transaction-dialog";
 
 interface Transaction {
   _id: string;
@@ -136,7 +137,8 @@ export function TransactionTable({
                 </div>
               </div>
             </div>
-            <div className="pt-2 border-t border-border/40 flex justify-end">
+            <div className="pt-2 border-t border-border/40 flex justify-end gap-1">
+              <EditTransactionDialog tx={tx} />
               <Button
                 variant="ghost"
                 size="sm"
@@ -162,7 +164,7 @@ export function TransactionTable({
               <TableHead>Counterparty</TableHead>
               <TableHead>Type</TableHead>
               <TableHead className="text-right">Amount</TableHead>
-              <TableHead className="w-[60px]"></TableHead>
+              <TableHead className="w-[96px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -216,15 +218,19 @@ export function TransactionTable({
                   {formatCurrency(tx.amount)}
                 </TableCell>
                 <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                    onClick={() => handleDelete(tx._id)}
-                    disabled={isPending}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex justify-end gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                    <EditTransactionDialog tx={tx} compact />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={() => handleDelete(tx._id)}
+                      disabled={isPending}
+                      aria-label="Delete transaction"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

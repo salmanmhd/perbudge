@@ -76,6 +76,19 @@ export async function updateTransaction(
       return { success: false, error: "Transaction not found" };
     }
 
+    if (data.amount !== undefined && !(Number(data.amount) > 0)) {
+      return { success: false, error: "Amount must be greater than 0" };
+    }
+    if (data.type !== undefined && !["income", "expense", "transfer"].includes(data.type)) {
+      return { success: false, error: "Invalid type" };
+    }
+    if (data.category !== undefined && !data.category.trim()) {
+      return { success: false, error: "Category is required" };
+    }
+    if (data.date !== undefined && Number.isNaN(new Date(data.date).getTime())) {
+      return { success: false, error: "Invalid date" };
+    }
+
     const updateFields: Partial<ITransaction> = {};
     if (data.amount !== undefined) updateFields.amount = round2(Number(data.amount));
     if (data.category !== undefined) updateFields.category = data.category;
@@ -88,8 +101,7 @@ export async function updateTransaction(
 
     await Transaction.updateOne({ _id: transactionId }, { $set: updateFields });
 
-    revalidatePath("/dashboard");
-    revalidatePath("/dashboard/transactions");
+    revalidatePath("/dashboard", "layout");
 
     return { success: true };
   } catch (error) {
